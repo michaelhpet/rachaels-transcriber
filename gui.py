@@ -1,3 +1,4 @@
+import io
 import queue
 import sys
 import threading
@@ -12,19 +13,18 @@ from tkinter import filedialog, messagebox
 from engine import TranscriptionEngine, MODELS
 
 
-class _StreamRedirector:
-    """Redirects stdout/stderr to a tkinter Text widget from a thread."""
-    def __init__(self, text_widget):
-        self.text = text_widget
+class _ThreadSafeBuffer(io.StringIO):
+    def __init__(self):
+        super().__init__()
+        self._lock = threading.Lock()
 
-    def write(self, msg):
-        self.text.after(0, lambda m=msg: (
-            self.text.insert("end", m),
-            self.text.see("end"),
-        ))
+    def write(self, s):
+        with self._lock:
+            super().write(s)
 
-    def flush(self):
-        pass
+    def getvalue(self):
+        with self._lock:
+            return super().getvalue()
 
 MODEL_LABELS = {"Accurate": "small.en", "Fast": "base.en"}
 from recorder import AudioRecorder, OVERLAP_SEC, WINDOW_SEC, TICK_SEC
@@ -45,7 +45,6 @@ class TranscriberApp(ctk.CTk):
         super().__init__()
         self.title("Rachael's Transcriber")
         self._set_window_icon()
-        self._check_and_download_models()
         self.geometry("1000x700")
         self.minsize(800, 500)
 
@@ -67,6 +66,7 @@ class TranscriberApp(ctk.CTk):
 
         self._build_ui()
         self._poll_queue()
+        self.after(0, self._check_and_download_models)
 
     def _set_window_icon(self):
         base = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
@@ -86,8 +86,6 @@ class TranscriberApp(ctk.CTk):
         missing = [m for m in MODELS if not (models_dir / m).is_dir()]
         if not missing:
             return
-
-        self.withdraw()
 
         dialog = ctk.CTkToplevel(self)
         dialog.title("Setting up")
@@ -114,44 +112,67 @@ class TranscriberApp(ctk.CTk):
         scrollbar.pack(side="right", fill="y")
         text.configure(yscrollcommand=scrollbar.set)
 
+        dialog_closed = []
         cancel_btn = ctk.CTkButton(dialog, text="Cancel",
-                                   command=dialog.destroy)
+                                   command=lambda: (
+                                       dialog_closed.append(True), dialog.destroy()
+                                   ))
         cancel_btn.pack(pady=(0, 16))
 
-        failed = []
+        buffer = _ThreadSafeBuffer()
+        finished = threading.Event()
+        failed_slot = []
 
         def run():
             try:
                 from download_models import download as dl
                 for model in missing:
-                    text.after(0, lambda m=model: text.insert(
-                        "end", f"[{m}] Downloading...\n"))
+                    buffer.write(f"[{model}] Downloading...\n")
                     old_out = sys.stdout
                     old_err = sys.stderr
-                    sys.stdout = _StreamRedirector(text)
-                    sys.stderr = _StreamRedirector(text)
+                    sys.stdout = buffer
+                    sys.stderr = buffer
                     try:
                         dl(model)
                     finally:
                         sys.stdout = old_out
                         sys.stderr = old_err
             except Exception as e:
-                failed.append(e)
+                import traceback
+                failed_slot.append(traceback.format_exc())
             finally:
-                if not failed:
-                    dialog.after(0, dialog.destroy)
+                finished.set()
+
+        def poll():
+            if dialog_closed:
+                return
+            content = buffer.getvalue()
+            lines = []
+            for part in content.split("\r"):
+                part = part.strip("\n")
+                if part:
+                    lines.append(part)
+            text.delete("1.0", "end")
+            text.insert("1.0", "\n".join(lines))
+            text.see("end")
+
+            if finished.is_set():
+                dialog.destroy()
+            else:
+                dialog.after(100, poll)
 
         thread = threading.Thread(target=run, daemon=True)
         thread.start()
+        dialog.after(100, poll)
 
         self.wait_window(dialog)
-        self.deiconify()
 
-        if failed:
+        if failed_slot:
+            detail = "\n".join(failed_slot)
             retry = messagebox.askretrycancel(
                 "Download Failed",
                 "Failed to download speech models.\n\n"
-                "Check your internet connection and try again."
+                f"Details:\n{detail}"
             )
             if retry:
                 self._check_and_download_models()

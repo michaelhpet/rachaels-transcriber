@@ -1,0 +1,6 @@
+faster-whisper>=1.0.0
+pydub>=0.25.1
+customtkinter>=5.2.0
+Pillow>=9.0.0
+sounddevice>=0.5.0
+webrtcvad>=2.0.10

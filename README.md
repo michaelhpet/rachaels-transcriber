@@ -74,6 +74,7 @@ python3 gui.py
 ```
 
 **File Transcription:**
+
 1. Click **Browse** and select an audio file (mp3, wav, m4a, flac, ogg, etc.)
 2. Choose **Accurate** (`small.en`) or **Fast** (`base.en`)
 3. Toggle **VAD** and **Word timestamps** as needed
@@ -81,6 +82,7 @@ python3 gui.py
 5. Click **Transcribe** (button turns red with Cancel while running)
 
 **Live Recording:**
+
 1. Set **Save Audio** path for the WAV file
 2. Set **Save Transcript** path for the output text
 3. Click **Record** (button turns red with Stop while recording)
@@ -107,70 +109,24 @@ python3 transcribe.py --help
 
 ### CLI Options
 
-| Flag | Default | Description |
-|---|---|---|
-| `audio` | — | Path to audio file (required for file mode) |
-| `--model` | `base` | Model: `base` (fast) or `small` (accurate) |
-| `-o, --output` | input + `_transcript.txt` | Output file path |
-| `--vad` | off | Voice Activity Detection (skip silence) |
-| `--word-timestamps` | off | Include word-level timestamps |
-| `--device` | `auto` | Compute device: auto, cpu, cuda |
-| `--record` | off | Record from microphone instead of file |
+| Flag                | Default                   | Description                                 |
+| ------------------- | ------------------------- | ------------------------------------------- |
+| `audio`             | —                         | Path to audio file (required for file mode) |
+| `--model`           | `base`                    | Model: `base` (fast) or `small` (accurate)  |
+| `-o, --output`      | input + `_transcript.txt` | Output file path                            |
+| `--vad`             | off                       | Voice Activity Detection (skip silence)     |
+| `--word-timestamps` | off                       | Include word-level timestamps               |
+| `--device`          | `auto`                    | Compute device: auto, cpu, cuda             |
+| `--record`          | off                       | Record from microphone instead of file      |
 
 ## Model Comparison
 
-| Model | Size | Speed | Accuracy | RAM |
-|---|---|---|---|---|
-| `base.en` | 141 MB | fast | good | ~1 GB |
-| `small.en` | 464 MB | moderate | better | ~2 GB |
+| Model      | Size   | Speed    | Accuracy | RAM   |
+| ---------- | ------ | -------- | -------- | ----- |
+| `base.en`  | 141 MB | fast     | good     | ~1 GB |
+| `small.en` | 464 MB | moderate | better   | ~2 GB |
 
 Start with `base.en`. If accuracy is insufficient, try `small.en`.
-
-Models are downloaded to `models/` via `download_models.py` during setup.
-
-## Project Structure
-
-```
-rachaels-transcriber/
-├── engine.py              # Core transcription (faster-whisper wrapper)
-├── gui.py                 # CustomTkinter graphical interface
-├── transcribe.py          # CLI entry point
-├── recorder.py            # AudioRecorder (sounddevice, VAD, ring buffer)
-├── download_models.py     # Pre-downloads models to models/
-├── theme.json             # CustomTkinter theme (macOS blue accent)
-├── requirements.txt       # Python dependencies
-├── setup_mac.sh           # macOS setup script
-├── build_mac.sh           # macOS PyInstaller script
-├── build_win.bat          # Windows build script (cmd)
-├── build_win.ps1          # Windows build script (PowerShell)
-├── run.sh                 # macOS launcher
-├── run.bat                # Windows launcher
-├── models/                # Downloaded model files (bundled by PyInstaller)
-├── test_audio/            # Sample test files
-└── .github/workflows/     # CI build workflow
-```
-
-## Building a Windows Executable
-
-### Option 1: GitHub Actions (automatic)
-
-Push the project to GitHub. The included workflow (`.github/workflows/build.yml`) builds the `.exe` on a free Windows runner. Download from **Actions > Build Windows .exe**:
-
-```bash
-git init && git add -A && git commit -m "Initial commit"
-gh repo create rachaels-transcriber --public --push
-# Then visit: https://github.com/YOUR_USER/rachaels-transcriber/actions
-```
-
-### Option 2: Build on Windows directly
-
-```powershell
-pip install -r requirements.txt
-pip install pyinstaller
-pyinstaller --onefile --windowed --name "RachaelsTranscriber" --icon assets\icon.ico gui.py
-```
-
-Output: `dist/RachaelsTranscriber.exe` — a single file. Transfer it to any Windows machine (requires [ffmpeg](https://ffmpeg.org/) installed separately).
 
 ## License
 

@@ -33,7 +33,9 @@ try:
     ctk.set_appearance_mode("system")
 except Exception:
     ctk.set_appearance_mode("dark")
-ctk.set_default_color_theme("theme.json")
+ctk.set_default_color_theme(
+    Path(getattr(sys, "_MEIPASS", Path(__file__).parent)) / "theme.json"
+)
 
 
 class TranscriberApp(ctk.CTk):

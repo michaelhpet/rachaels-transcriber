@@ -51,6 +51,8 @@ pyinstaller ^
     --name "%APP_NAME%" ^
     --add-data "engine.py;." ^
     --add-data "assets;assets" ^
+    --add-data "theme.json;." ^
+    --hidden-import download_models ^
     --icon assets\icon.ico ^
     clean=False ^
     gui.py

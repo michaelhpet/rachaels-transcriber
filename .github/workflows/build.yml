@@ -28,7 +28,7 @@ jobs:
 
       - name: Build .exe
         run: |
-          pyinstaller --onefile --windowed --name "RachaelsTranscriber" --add-data "engine.py;." --add-data "assets;assets" --icon assets\icon.ico gui.py
+          pyinstaller --onefile --windowed --name "RachaelsTranscriber" --add-data "engine.py;." --add-data "assets;assets" --add-data "theme.json;." --hidden-import download_models --icon assets\icon.ico gui.py
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4

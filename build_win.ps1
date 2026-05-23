@@ -50,6 +50,8 @@ pyinstaller `
     --name $AppName `
     --add-data "engine.py;." `
     --add-data "assets;assets" `
+    --add-data "theme.json;." `
+    --hidden-import download_models `
     --icon assets\icon.ico `
     --hidden-import faster_whisper `
     --hidden-import ctranslate2 `

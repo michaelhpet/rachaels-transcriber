@@ -41,6 +41,7 @@ python3 gui.py
 
 ### Windows
 
+**Run from source:**
 ```powershell
 # 1. Install Python 3.12 from https://python.org
 # 2. Install ffmpeg:   choco install ffmpeg
@@ -48,6 +49,23 @@ python3 gui.py
 pip install -r requirements.txt
 # 4. Launch GUI:
 python gui.py
+```
+
+**Build a standalone .exe:**
+
+```powershell
+# 1. Install Python 3.12 from https://python.org
+# 2. Install ffmpeg:   choco install ffmpeg
+# 3. Clone the repo:
+git clone https://github.com/anomalyco/rachaels-transcriber
+cd rachaels-transcriber
+
+# 4. Build (installs deps + PyInstaller, creates .exe):
+.\build_win.ps1
+
+# 5. The .exe is at dist/RachaelsTranscriber.exe
+# Transfer it to any Windows machine. Models are downloaded
+# on first launch (internet required).
 ```
 
 ### Linux

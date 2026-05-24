@@ -11,3 +11,8 @@ test_audio/*.srt
 test_audio/*.vtt
 test_audio/*.json
 .DS_Store
+
+
+# Added by cargo
+
+/target

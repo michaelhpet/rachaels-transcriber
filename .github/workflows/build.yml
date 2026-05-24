@@ -18,8 +18,19 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Install ffmpeg
-        run: choco install ffmpeg -y
+      - name: Download ffmpeg binaries
+        run: |
+          if not exist ffmpeg\ffmpeg.exe (
+            curl -sL "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -o ffmpeg.zip
+            tar -xf ffmpeg.zip
+            for /d %%i in (ffmpeg-*-essentials_build) do (
+              mkdir ffmpeg 2>nul
+              move "%%i\bin\ffmpeg.exe" ffmpeg\ >nul
+              move "%%i\bin\ffprobe.exe" ffmpeg\ >nul
+              rmdir /s /q "%%i"
+            )
+            del ffmpeg.zip
+          )
 
       - name: Install dependencies
         run: |
@@ -29,7 +40,7 @@ jobs:
 
       - name: Build .exe
         run: |
-          pyinstaller --onefile --windowed --name "RachaelsTranscriber" --add-data "engine.py;." --add-data "assets;assets" --add-data "theme.json;." --additional-hooks-dir hooks --hidden-import webrtcvad --collect-data faster_whisper --hidden-import download_models --noconfirm --icon assets\icon.ico gui.py
+          pyinstaller --onefile --windowed --name "RachaelsTranscriber" --add-data "engine.py;." --add-data "assets;assets" --add-data "theme.json;." --add-data "ffmpeg;ffmpeg" --additional-hooks-dir hooks --hidden-import webrtcvad --collect-data faster_whisper --hidden-import download_models --noconfirm --icon assets\icon.ico gui.py
 
       - name: Set PE metadata (taskbar icon & name)
         run: |

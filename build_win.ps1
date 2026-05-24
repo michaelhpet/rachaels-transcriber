@@ -17,14 +17,21 @@ try {
     exit 1
 }
 
-# Check ffmpeg
-try {
-    ffmpeg -version | Out-Null
-} catch {
-    Write-Host "[WARNING] ffmpeg not found in PATH." -ForegroundColor Yellow
-    Write-Host " The .exe will require ffmpeg installed separately." -ForegroundColor Yellow
-    Write-Host " Install with: choco install ffmpeg" -ForegroundColor Yellow
-    Write-Host ""
+# Download and bundle ffmpeg (cached)
+if (-not (Test-Path "ffmpeg\ffmpeg.exe")) {
+    Write-Host "Downloading ffmpeg..." -ForegroundColor Yellow
+    curl -sL "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -o ffmpeg.zip
+    Expand-Archive -Path ffmpeg.zip -DestinationPath .
+    $dir = Get-ChildItem -Directory "ffmpeg-*-essentials_build" | Select-Object -First 1
+    if ($dir) {
+        New-Item -ItemType Directory -Force -Name ffmpeg | Out-Null
+        Move-Item "$dir\bin\ffmpeg.exe" ffmpeg\ -Force
+        Move-Item "$dir\bin\ffprobe.exe" ffmpeg\ -Force
+        Remove-Item $dir -Recurse -Force
+    }
+    Remove-Item ffmpeg.zip -Force
+} else {
+    Write-Host "ffmpeg already cached, skipping download." -ForegroundColor Cyan
 }
 
 Write-Host "[1/3] Installing Python dependencies..." -ForegroundColor Green
@@ -59,6 +66,7 @@ pyinstaller `
     --add-data "engine.py;." `
     --add-data "assets;assets" `
     --add-data "theme.json;." `
+    --add-data "ffmpeg;ffmpeg" `
     --collect-data faster_whisper `
     --hidden-import download_models `
     --additional-hooks-dir hooks `
@@ -89,8 +97,8 @@ Write-Host " Executable: dist\$AppName.exe" -ForegroundColor Green
 $size = (Get-Item "dist\$AppName.exe").Length / 1MB
 Write-Host (" Size: {0:N1} MB" -f $size) -ForegroundColor Green
 Write-Host ""
-Write-Host " Models are downloaded on first launch." -ForegroundColor White
-Write-Host " Users need ffmpeg + internet for first run." -ForegroundColor White
+Write-Host " Models are downloaded on first launch (internet required)." -ForegroundColor White
+Write-Host " ffmpeg is bundled — no separate install needed." -ForegroundColor White
 Write-Host "============================================" -ForegroundColor Green
 
 pause

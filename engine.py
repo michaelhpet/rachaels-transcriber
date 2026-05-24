@@ -29,9 +29,29 @@ def get_persistent_base():
     return Path(__file__).parent
 
 
+def _find_ff(name):
+    name_exe = f"{name}.exe" if platform.system() == "Windows" else name
+    search_dirs = []
+    if getattr(sys, "frozen", False):
+        search_dirs.append(Path(sys.executable).parent / "ffmpeg")
+        search_dirs.append(Path(sys.executable).parent)
+    if hasattr(sys, "_MEIPASS"):
+        search_dirs.append(Path(sys._MEIPASS) / "ffmpeg")
+        search_dirs.append(Path(sys._MEIPASS))
+    search_dirs.append(Path(__file__).parent / "ffmpeg")
+    for d in search_dirs:
+        p = d / name_exe
+        if p.is_file():
+            return str(p)
+    found = shutil.which(name)
+    if found:
+        return found
+    return name
+
+
 def check_ffmpeg():
     for name in ("ffmpeg", "ffprobe"):
-        if shutil.which(name) is None:
+        if _find_ff(name) == name:
             return name
     return None
 
@@ -71,19 +91,17 @@ class IncrementalFileWriter:
 
 
 def get_audio_duration(audio_path):
+    ffprobe = _find_ff("ffprobe")
     try:
         result = subprocess.run(
-            ["ffprobe", "-v", "error", "-show_entries",
+            [ffprobe, "-v", "error", "-show_entries",
              "format=duration", "-of", "default=noprint_wrappers=1:nokey=1",
              str(audio_path)],
             capture_output=True, text=True, timeout=30,
         )
     except FileNotFoundError:
         raise RuntimeError(
-            "ffprobe not found. Install ffmpeg to use this app.\n"
-            "  Windows: choco install ffmpeg  or  winget install ffmpeg\n"
-            "  macOS:   brew install ffmpeg\n"
-            "  Linux:   sudo apt install ffmpeg"
+            f"ffprobe not found. The ffmpeg binary is missing from the bundle."
         )
     if result.returncode != 0:
         raise RuntimeError(
@@ -94,19 +112,17 @@ def get_audio_duration(audio_path):
 
 
 def extract_chunk(audio_path, start, duration, output_path):
+    ffmpeg = _find_ff("ffmpeg")
     try:
         result = subprocess.run(
-            ["ffmpeg", "-y", "-ss", str(start), "-t", str(duration),
+            [ffmpeg, "-y", "-ss", str(start), "-t", str(duration),
              "-i", str(audio_path), "-ar", "16000", "-ac", "1",
              "-sample_fmt", "s16", str(output_path)],
             capture_output=True, timeout=300,
         )
     except FileNotFoundError:
         raise RuntimeError(
-            "ffmpeg not found. Install ffmpeg to use this app.\n"
-            "  Windows: choco install ffmpeg  or  winget install ffmpeg\n"
-            "  macOS:   brew install ffmpeg\n"
-            "  Linux:   sudo apt install ffmpeg"
+            "ffmpeg not found. The ffmpeg binary is missing from the bundle."
         )
     if result.returncode != 0:
         raise RuntimeError(

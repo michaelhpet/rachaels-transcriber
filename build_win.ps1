@@ -52,6 +52,8 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Write-Host "[3/3] Building executable..." -ForegroundColor Green
+# Remove ARM64 PortAudio DLLs (crash on x64 Windows)
+python -c "import sounddevice; from pathlib import Path; d=Path(sounddevice.__file__).parent/'_sounddevice_data'/'portaudio-binaries'; [f.unlink() for f in d.glob('*arm64*')]"
 pyinstaller `
     --onefile `
     --windowed `

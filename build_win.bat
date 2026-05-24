@@ -53,8 +53,6 @@ if errorlevel 1 (
 )
 
 echo [3/3] Building executable...
-:: Remove ARM64 PortAudio DLLs (crash on x64 Windows)
-python scripts\clean_portaudio.py
 pyinstaller ^
     --onefile ^
     --windowed ^

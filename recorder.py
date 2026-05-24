@@ -4,7 +4,6 @@ from collections import deque
 from pathlib import Path
 
 import numpy as np
-import sounddevice as sd
 
 SAMPLE_RATE = 16000
 CHANNELS = 1
@@ -38,6 +37,13 @@ class AudioRecorder:
     def start(self, wav_path=None):
         if self.recording:
             return
+        try:
+            import sounddevice as sd
+        except Exception as e:
+            raise RuntimeError(
+                "Audio recording is not available on this system.\n"
+                f"sounddevice/PortAudio failed to load: {e}"
+            )
         self.buffer.clear()
         self.recording = True
         self.start_time = time.time()

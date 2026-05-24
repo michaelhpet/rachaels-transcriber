@@ -55,7 +55,6 @@ pyinstaller ^
     --collect-data faster_whisper ^
     --hidden-import download_models ^
     --icon assets\icon.ico ^
-    clean=False ^
     gui.py
 
 if %ERRORLEVEL% neq 0 (

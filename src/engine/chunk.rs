@@ -1,10 +1,9 @@
 use std::fs::File;
 use std::path::Path;
-use std::time::Duration;
 
 use anyhow::{Context, Result};
 use rubato::{Resampler, SincFixedIn, SincInterpolationParameters, SincInterpolationType, WindowFunction};
-use symphonia::core::audio::{SampleBuffer, SignalSpec};
+use symphonia::core::audio::SampleBuffer;
 use symphonia::core::codecs::{DecoderOptions, CODEC_TYPE_NULL};
 use symphonia::core::errors::Error as SymphoniaError;
 use symphonia::core::formats::FormatOptions;
@@ -13,8 +12,6 @@ use symphonia::core::meta::MetadataOptions;
 use symphonia::core::probe::Hint;
 
 use crate::config::SAMPLE_RATE;
-
-const TARGET_CHANNELS: usize = 1;
 
 pub fn decode_audio(path: &Path) -> Result<(Vec<f32>, u32, u32)> {
     let src = File::open(path).with_context(|| format!("failed to open {}", path.display()))?;
@@ -135,12 +132,14 @@ pub fn prepare_audio(path: &Path) -> Result<Vec<f32>> {
     Ok(pcm)
 }
 
+#[allow(dead_code)]
 pub fn duration_from_path(path: &Path) -> Result<f64> {
     let (samples, sample_rate, _channels) = decode_audio(path)?;
     let duration = samples.len() as f64 / sample_rate as f64;
     Ok(duration)
 }
 
+#[allow(dead_code)]
 pub fn extract_chunk(audio: &[f32], start_sec: f64, duration_sec: f64) -> Vec<f32> {
     let sample_rate = SAMPLE_RATE as f64;
     let start_sample = (start_sec * sample_rate) as usize;

@@ -17,6 +17,7 @@ impl VadDetector {
         Self { vad: Mutex::new(vad) }
     }
 
+    #[allow(dead_code)]
     pub fn set_mode(&self, mode: VadMode) {
         if let Ok(mut vad) = self.vad.lock() {
             let _ = vad.fvad_set_mode(mode);

@@ -1,6 +1,5 @@
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
 
 use anyhow::{Context, Result};
 use whisper_rs::{FullParams, SamplingStrategy, WhisperContext, WhisperContextParameters};
@@ -12,6 +11,7 @@ pub struct WhisperEngine {
 
 #[derive(Clone, Debug)]
 pub struct Segment {
+    #[allow(dead_code)]
     pub start: f64,
     pub end: f64,
     pub text: String,

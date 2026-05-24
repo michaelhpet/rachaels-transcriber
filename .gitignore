@@ -1,18 +1,3 @@
-__pycache__/
-*.pyc
-.venv/
-dist/
-build/
-*.spec
-models/
-assets/icon.iconset/
-test_audio/*.txt
-test_audio/*.srt
-test_audio/*.vtt
-test_audio/*.json
-.DS_Store
-
-
-# Added by cargo
-
 /target
+models/
+.DS_Store

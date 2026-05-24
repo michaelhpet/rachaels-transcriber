@@ -18,12 +18,11 @@ cpal = "0.15"
 webrtc-vad = "0.1"
 
 # GUI
-eframe = { version = "0.28", features = ["default", "wgpu"] }
-egui = "0.28"
-egui-wgpu = "0.28"
+eframe = { version = "0.34", features = ["default", "wgpu"] }
+egui = "0.34"
 
 # Native file dialogs
-rfd = "0.14"
+rfd = "0.17"
 
 # CLI
 clap = { version = "4", features = ["derive"] }

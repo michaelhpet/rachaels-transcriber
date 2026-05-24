@@ -23,6 +23,7 @@ pub fn models_dir() -> PathBuf {
     get_persistent_base().join("models")
 }
 
+#[allow(dead_code)]
 pub fn supported_extensions() -> &'static [&'static str] {
     &["mp3", "wav", "m4a", "flac", "ogg", "aac", "wma"]
 }

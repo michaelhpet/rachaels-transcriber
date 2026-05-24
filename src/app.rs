@@ -9,7 +9,7 @@ use egui::RichText;
 use crate::config;
 use crate::download_models;
 use crate::engine::chunk;
-use crate::engine::whisper::{self, WhisperEngine, Segment};
+use crate::engine::whisper::{self, WhisperEngine};
 use crate::recorder::AudioRecorder;
 
 #[derive(Debug, Clone, PartialEq)]
@@ -529,7 +529,7 @@ impl TranscriberApp {
         }
 
         let model_path = download_models::model_path(&model_label);
-        let use_vad = self.use_vad;
+        let _use_vad = self.use_vad;
         let save_path = self.save_path.clone();
         let cancel_flag = self.cancel_flag.clone();
         let status = self.status.clone();
@@ -647,7 +647,7 @@ impl TranscriberApp {
             }
 
             let start = Instant::now();
-            let mut full_text = String::new();
+            let full_text = String::new();
 
             while !stop_flag.load(Ordering::Relaxed) {
                 std::thread::sleep(std::time::Duration::from_secs_f64(config::TICK_SEC));
@@ -697,12 +697,10 @@ impl TranscriberApp {
                 ui.label("Downloading speech models (~600 MB). Internet required.");
                 ui.add_space(20.0);
 
-                let status = self.status.lock().unwrap().clone();
-                match status {
-                    Status::Idle | Status::Done(_) => {
-                        // Start downloading
+                let status_cloned = self.status.lock().unwrap().clone();
+                match status_cloned {
+                    Status::Idle => {
                         if !self.needs_download.is_empty() {
-                            let label = self.needs_download[0].clone();
                             let labels = self.needs_download.clone();
                             let status = self.status.clone();
                             let cancel = self.download_cancel.clone();
@@ -736,20 +734,15 @@ impl TranscriberApp {
                                         .await
                                     });
 
-                                    match result {
-                                        Ok(_) => {}
-                                        Err(e) => {
-                                            let mut s = status.lock().unwrap();
-                                            *s = Status::Error(format!("Download failed: {e}"));
-                                            return;
-                                        }
+                                    if let Err(e) = result {
+                                        let mut s = status.lock().unwrap();
+                                        *s = Status::Error(format!("Download failed: {e}"));
+                                        return;
                                     }
                                 }
 
-                                let mut s = status.lock().unwrap();
-                                *s = Status::Done("Models downloaded".to_string());
+                                *status.lock().unwrap() = Status::Done("Models downloaded".to_string());
                             });
-
                         }
                     }
                     Status::Downloading { ref label, downloaded, total } => {
@@ -814,27 +807,26 @@ enum ViewMode {
 }
 
 impl eframe::App for TranscriberApp {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        // Check models on first frame
+    fn ui(&mut self, ui: &mut egui::Ui, _frame: &mut eframe::Frame) {
+        let ctx = ui.ctx().clone();
+
         if self.needs_model_check {
             self.needs_model_check = false;
             self.check_models();
             ctx.request_repaint();
         }
 
-        // Show download dialog if needed
         if !self.needs_download.is_empty() {
-            self.show_download_dialog(ctx);
+            self.show_download_dialog(&ctx);
             return;
         }
 
         match self.view {
-            AppView::Landing => self.show_landing(ctx),
-            AppView::FileTranscribe => self.show_file_view(ctx),
-            AppView::LiveRecord => self.show_record_view(ctx),
+            AppView::Landing => self.show_landing(&ctx),
+            AppView::FileTranscribe => self.show_file_view(&ctx),
+            AppView::LiveRecord => self.show_record_view(&ctx),
         }
 
-        // Repaint continuously during transcription/recording
         let needs_repaint = matches!(
             *self.status.lock().unwrap(),
             Status::Transcribing { .. } | Status::Recording { .. } | Status::Downloading { .. }

@@ -50,7 +50,7 @@ impl AudioRecorder {
             .map_err(|e| anyhow::anyhow!("failed to get input config: {e}"))?;
 
         let sample_rate = config.sample_rate().0;
-        let channels = config.channels() as usize;
+        let _channels = config.channels() as usize;
 
         self.actual_sample_rate = sample_rate;
         self._actual_channels = config.channels();
@@ -123,6 +123,7 @@ impl AudioRecorder {
         }
     }
 
+    #[allow(dead_code)]
     pub fn elapsed(&self) -> f64 {
         self.start_time
             .map(|t| t.elapsed().as_secs_f64())
@@ -146,6 +147,7 @@ impl AudioRecorder {
         self.vad_detector.is_speech(audio, threshold)
     }
 
+    #[allow(dead_code)]
     pub fn is_recording(&self) -> bool {
         self.is_recording.load(Ordering::Relaxed)
     }

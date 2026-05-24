@@ -1,5 +1,4 @@
-use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 use anyhow::{Context, Result};
@@ -9,6 +8,7 @@ use crate::config;
 use crate::config::{MODEL_ACCURATE, MODEL_FAST};
 
 pub struct ModelInfo {
+    #[allow(dead_code)]
     pub name: &'static str,
     pub url: &'static str,
     pub size_mb: u64,

@@ -27,3 +27,5 @@ Models (GGML format) are downloaded from HuggingFace on first run.
 ```sh
 cargo build --release
 ```
+
+Binary is at `target/release/rachaels-transcriber` (or `target/debug/rachaels-transcriber` without `--release`).

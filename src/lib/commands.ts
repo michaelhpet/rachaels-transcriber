@@ -41,6 +41,10 @@ export function pickSaveFile(): Promise<string | null> {
 	return invoke("pick_save_file");
 }
 
+export function pickAudioSaveFile(): Promise<string | null> {
+	return invoke("pick_audio_save_file");
+}
+
 export function transcribeFile(path: string, model: string): Promise<void> {
 	return invoke("transcribe_file", { path, model });
 }

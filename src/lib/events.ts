@@ -43,3 +43,13 @@ export function onRecordProgress(
 ): Promise<UnlistenFn> {
 	return listen<RecordProgress>("record-progress", (e) => cb(e.payload));
 }
+
+export interface RecordSegment {
+	text: string;
+}
+
+export function onRecordSegment(
+	cb: (data: RecordSegment) => void,
+): Promise<UnlistenFn> {
+	return listen<RecordSegment>("record-segment", (e) => cb(e.payload));
+}

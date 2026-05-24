@@ -36,6 +36,11 @@ pub struct RecordProgress {
     pub text: String,
 }
 
+#[derive(Serialize, Clone)]
+pub struct RecordSegment {
+    pub text: String,
+}
+
 #[tauri::command]
 pub fn check_models() -> MissingModels {
     let accurate = download_models::is_model_downloaded("Accurate");
@@ -113,6 +118,15 @@ pub fn pick_save_file() -> Option<String> {
 }
 
 #[tauri::command]
+pub fn pick_audio_save_file() -> Option<String> {
+    rfd::FileDialog::new()
+        .add_filter("Audio", &["wav"])
+        .set_file_name("recording.wav")
+        .save_file()
+        .map(|p| p.to_string_lossy().to_string())
+}
+
+#[tauri::command]
 pub fn transcribe_file(
     path: String,
     model: String,
@@ -177,7 +191,7 @@ pub fn transcribe_file(
 
 #[tauri::command]
 pub fn start_recording(
-    _model: String,
+    model: String,
     save_audio_path: Option<String>,
     save_transcript_path: Option<String>,
     vad_enabled: Option<bool>,
@@ -193,46 +207,80 @@ pub fn start_recording(
     *state.save_audio_path.lock() = save_audio_path.map(std::path::PathBuf::from);
     *state.save_transcript_path.lock() = save_transcript_path.map(std::path::PathBuf::from);
 
+    // Load the Whisper engine
+    let model_path = download_models::model_path(&model);
+    if !model_path.exists() {
+        return Err("Model not found. Please download it first.".to_string());
+    }
+    let engine = WhisperEngine::new(&model_path, "en")
+        .map_err(|e| format!("Failed to load model: {e}"))?;
+    state.engine.lock().replace(engine);
+
     let mut recorder = AudioRecorder::new();
     recorder.start(None).map_err(|e| e.to_string())?;
-
     state.recorder.lock().replace(recorder);
 
     let cancel_clone = cancel.clone();
     let app_handle_clone = app_handle.clone();
     let vad_enabled_flag = state.vad_enabled.clone();
+    let raw_consumed = state.samples_processed.clone();
+    raw_consumed.store(0, Ordering::Relaxed);
+
+    let chunk_sec = crate::config::WINDOW_SEC; // 4.0 seconds
+    let tick_sec = crate::config::TICK_SEC; // 2.0 seconds
 
     std::thread::spawn(move || {
-        let window_sec = 5.0;
         loop {
             if cancel_clone.load(Ordering::Relaxed) {
                 break;
             }
 
             let state = app_handle_clone.state::<AppState>();
-            if let Some(ref recorder) = *state.recorder.lock() {
-                if let Some(buf) = recorder.get_buffer(window_sec) {
+            let recorder_guard = state.recorder.lock();
+            if let Some(ref recorder) = *recorder_guard {
+                let consumed = raw_consumed.load(Ordering::Relaxed);
+
+                if let Some((chunk, taken)) = recorder.read_chunk(consumed, chunk_sec) {
                     let has_speech = if vad_enabled_flag.load(Ordering::Relaxed) {
-                        recorder.has_speech(&buf, 0.5)
+                        recorder.has_speech(&chunk, 0.5)
                     } else {
                         true
                     };
 
                     let text = if has_speech {
-                        format!("[captured {} samples at {window_sec}s]", buf.len())
+                        if let Some(ref engine) = *state.engine.lock() {
+                            let cancel_ref = &cancel_clone;
+                            let segments = match engine.transcribe(
+                                &chunk,
+                                Some(cancel_ref),
+                                Some(&|_| {}),
+                            ) {
+                                Ok(s) => s,
+                                Err(_) => vec![],
+                            };
+                            whisper::segments_to_text(&segments)
+                        } else {
+                            String::new()
+                        }
                     } else {
                         String::new()
                     };
 
+                    raw_consumed.store(consumed + taken, Ordering::Relaxed);
+
                     let elapsed = recorder.elapsed();
+                    let _ = app_handle_clone.emit("record-segment", RecordSegment {
+                        text: text.clone(),
+                    });
                     let _ = app_handle_clone.emit("record-progress", RecordProgress {
                         elapsed,
                         text,
                     });
                 }
             }
+            drop(recorder_guard);
 
-            std::thread::sleep(std::time::Duration::from_millis(2000));
+            std::thread::sleep(std::time::Duration::from_secs_f64(tick_sec));
         }
     });
 
@@ -241,29 +289,48 @@ pub fn start_recording(
 
 #[tauri::command]
 pub fn stop_recording(
+    app_handle: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<String, String> {
     state.cancel_flag.store(true, Ordering::Relaxed);
 
     let mut recorder_opt = state.recorder.lock();
     if let Some(mut recorder) = recorder_opt.take() {
-        let audio = recorder.stop().unwrap_or_default();
+        let full_audio = recorder.stop().unwrap_or_default();
 
-        let text = format!("[recorded {} samples]", audio.len());
+        // Transcribe the entire recording (frontend replaces live segments with this)
+        let text = if full_audio.is_empty() {
+            String::new()
+        } else {
+            let engine = state.engine.lock().take();
+            if let Some(engine) = engine {
+                let cancel_ref = state.cancel_flag.clone();
+                let segments = engine
+                    .transcribe(&full_audio, Some(&cancel_ref), Some(&|_| {}))
+                    .unwrap_or_default();
+                whisper::segments_to_text(&segments)
+            } else {
+                String::new()
+            }
+        };
 
         let audio_path = state.save_audio_path.lock().take();
         let transcript_path = state.save_transcript_path.lock().take();
 
         if let Some(ref path) = audio_path {
-            if !audio.is_empty() {
-                write_wav(path, &audio).map_err(|e| format!("failed to save audio: {e}"))?;
+            if !full_audio.is_empty() {
+                write_wav(path, &full_audio).map_err(|e| format!("failed to save audio: {e}"))?;
             }
         }
 
         if let Some(ref path) = transcript_path {
-            std::fs::write(path, &text).map_err(|e| format!("failed to save transcript: {e}"))?;
+            if !text.is_empty() {
+                std::fs::write(path, &text)
+                    .map_err(|e| format!("failed to save transcript: {e}"))?;
+            }
         }
 
+        let _ = app_handle.emit("transcribe-done", text.clone());
         Ok(text)
     } else {
         Err("not recording".to_string())

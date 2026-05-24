@@ -4,7 +4,7 @@ pub mod download_models;
 pub mod engine;
 pub mod recorder;
 
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, AtomicUsize};
 use std::sync::Arc;
 
 use parking_lot::Mutex;
@@ -20,6 +20,7 @@ pub struct AppState {
     pub save_audio_path: Mutex<Option<std::path::PathBuf>>,
     pub save_transcript_path: Mutex<Option<std::path::PathBuf>>,
     pub vad_enabled: Arc<AtomicBool>,
+    pub samples_processed: Arc<AtomicUsize>,
 }
 
 impl AppState {
@@ -31,6 +32,7 @@ impl AppState {
             save_audio_path: Mutex::new(None),
             save_transcript_path: Mutex::new(None),
             vad_enabled: Arc::new(AtomicBool::new(true)),
+            samples_processed: Arc::new(AtomicUsize::new(0)),
         }
     }
 }
@@ -52,6 +54,7 @@ pub fn run() {
             commands::get_models_dir,
             commands::pick_audio_file,
             commands::pick_save_file,
+            commands::pick_audio_save_file,
             commands::transcribe_file,
             commands::start_recording,
             commands::stop_recording,

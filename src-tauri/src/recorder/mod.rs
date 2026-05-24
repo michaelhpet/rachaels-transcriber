@@ -151,6 +151,46 @@ impl AudioRecorder {
     pub fn is_recording(&self) -> bool {
         self.is_recording.load(Ordering::Relaxed)
     }
+
+    /// Returns how many raw interleaved samples have been captured so far.
+    #[allow(dead_code)]
+    pub fn raw_len(&self) -> usize {
+        self.raw_audio.lock().len()
+    }
+
+    /// Reads audio starting at `start_raw` raw interleaved samples,
+    /// covering `duration_sec` seconds at the actual sample rate.
+    /// Converts to mono, resamples to SAMPLE_RATE.
+    /// Returns `(audio_chunk, raw_samples_consumed)` or None if not enough data.
+    pub fn read_chunk(&self, start_raw: usize, duration_sec: f64) -> Option<(Vec<f32>, usize)> {
+        let needed_frames = (self.actual_sample_rate as f64 * duration_sec) as usize;
+        let ch = self._actual_channels as usize;
+        let needed_raw = needed_frames * ch;
+
+        let raw = self.raw_audio.lock();
+        if start_raw + needed_raw > raw.len() {
+            return None;
+        }
+
+        let mut mono = Vec::with_capacity(needed_frames);
+        for i in 0..needed_frames {
+            let base = start_raw + i * ch;
+            let mut sum = 0.0f32;
+            for c in 0..ch {
+                sum += raw[base + c];
+            }
+            mono.push(sum / ch as f32);
+        }
+        drop(raw);
+
+        let audio = if self.actual_sample_rate != SAMPLE_RATE {
+            resample_to_16khz(&mono, self.actual_sample_rate).unwrap_or(mono)
+        } else {
+            mono
+        };
+
+        Some((audio, needed_raw))
+    }
 }
 
 impl Default for AudioRecorder {

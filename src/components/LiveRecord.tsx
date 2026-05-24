@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
+	pickAudioSaveFile,
 	pickSaveFile,
 	saveTextFile,
 	startRecording,
@@ -22,6 +23,7 @@ import {
 } from "@/lib/commands";
 import {
 	onRecordProgress,
+	onRecordSegment,
 	onTranscribeDone,
 	onTranscribeError,
 	type UnlistenFn,
@@ -60,10 +62,18 @@ function LiveRecord() {
 		);
 
 		unlisteners.push(
+			onRecordSegment((data) => {
+				if (data.text) {
+					setOutputText((prev) => `${prev}${data.text}\n`);
+				}
+			}),
+		);
+
+		unlisteners.push(
 			onTranscribeDone((text) => {
 				setRecording(false);
 				if (timerRef.current) clearInterval(timerRef.current);
-				setOutputText((prev) => `${prev}${text}\n`);
+				setOutputText(text);
 				setStatus({ type: "done", text });
 			}),
 		);
@@ -141,7 +151,7 @@ function LiveRecord() {
 							variant="outline"
 							className="text-muted-foreground"
 							onClick={async () => {
-								const p = await pickSaveFile();
+								const p = await pickAudioSaveFile();
 								if (p) setSaveAudioPath(p);
 							}}
 						>

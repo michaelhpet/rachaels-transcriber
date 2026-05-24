@@ -44,7 +44,15 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-echo [4/4] Building executable...
+:: Try to install webrtcvad-wheels for VAD support (optional)
+pip install webrtcvad-wheels 2>nul
+if errorlevel 1 (
+    set EXTRA_PYI=--exclude-module webrtcvad
+) else (
+    set EXTRA_PYI=--additional-hooks-dir hooks --hidden-import webrtcvad
+)
+
+echo [3/3] Building executable...
 pyinstaller ^
     --onefile ^
     --windowed ^
@@ -54,6 +62,7 @@ pyinstaller ^
     --add-data "theme.json;." ^
     --collect-data faster_whisper ^
     --hidden-import download_models ^
+    !EXTRA_PYI! ^
     --icon assets\icon.ico ^
     gui.py
 

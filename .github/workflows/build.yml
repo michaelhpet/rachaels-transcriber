@@ -29,7 +29,7 @@ jobs:
 
       - name: Build .exe
         run: |
-          python -c "import sounddevice; from pathlib import Path; d=Path(sounddevice.__file__).parent/'_sounddevice_data'/'portaudio-binaries'; [f.unlink() for f in d.glob('*arm64*')]"
+          python scripts\clean_portaudio.py
           pyinstaller --onefile --windowed --name "RachaelsTranscriber" --add-data "engine.py;." --add-data "assets;assets" --add-data "theme.json;." --additional-hooks-dir hooks --hidden-import webrtcvad --collect-data faster_whisper --hidden-import download_models --noconfirm --icon assets\icon.ico gui.py
 
       - name: Install Inno Setup

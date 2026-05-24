@@ -45,7 +45,7 @@ if errorlevel 1 (
 
 echo [3/3] Building executable...
 pyinstaller ^
-    --onefile ^
+    --onedir ^
     --windowed ^
     --name "%APP_NAME%" ^
     --add-data "engine.py;." ^
@@ -65,18 +65,12 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-:: Set PE metadata for proper taskbar icon and name
-echo Setting PE metadata...
-curl -sL "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -o rcedit.exe
-rcedit.exe "dist\%APP_NAME%.exe" --set-version-string "FileDescription" "Rachael's Transcriber" --set-version-string "ProductName" "Rachael's Transcriber" --set-icon "assets\icon.ico"
-del rcedit.exe
-
 echo.
 echo ============================================
 echo  SUCCESS!
-echo  Executable: dist\%APP_NAME%.exe
+echo  Executable: dist\%APP_NAME%\%APP_NAME%.exe
 echo  Size:
-dir "dist\%APP_NAME%.exe" | findstr /i "%APP_NAME%"
+dir "dist\%APP_NAME%\%APP_NAME%.exe" | findstr /i "%APP_NAME%"
 echo.
 echo  Models are downloaded on first launch (internet required).
 echo  ffmpeg is optional (needed only for files longer than 3 min).

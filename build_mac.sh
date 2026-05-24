@@ -17,7 +17,7 @@ python3 download_models.py
 
 # Build the .app bundle
 pyinstaller \
-    --onefile \
+    --onedir \
     --windowed \
     --name "$APP_NAME" \
     --add-data "engine.py:." \

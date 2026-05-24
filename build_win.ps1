@@ -43,7 +43,7 @@ if ($LASTEXITCODE -ne 0) {
 
 Write-Host "[3/3] Building executable..." -ForegroundColor Green
 pyinstaller `
-    --onefile `
+    --onedir `
     --windowed `
     --name $AppName `
     --add-data "engine.py;." `
@@ -66,18 +66,12 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
-# Set PE metadata for proper taskbar icon and name
-Write-Host "Setting PE metadata..." -ForegroundColor Cyan
-curl -sL "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -o rcedit.exe
-& .\rcedit.exe "dist\$AppName.exe" --set-version-string "FileDescription" "Rachael's Transcriber" --set-version-string "ProductName" "Rachael's Transcriber" --set-icon "assets\icon.ico"
-Remove-Item rcedit.exe
-
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Green
 Write-Host " SUCCESS!" -ForegroundColor Green
-Write-Host " Executable: dist\$AppName.exe" -ForegroundColor Green
-$size = (Get-Item "dist\$AppName.exe").Length / 1MB
-Write-Host (" Size: {0:N1} MB" -f $size) -ForegroundColor Green
+Write-Host " Executable: dist\$AppName\$AppName.exe" -ForegroundColor Green
+$size = (Get-ChildItem -Recurse "dist\$AppName" | Measure-Object -Property Length -Sum).Sum / 1MB
+Write-Host (" Total size: {0:N1} MB" -f $size) -ForegroundColor Green
 Write-Host ""
 Write-Host " Models are downloaded on first launch (internet required)." -ForegroundColor White
 Write-Host " ffmpeg is optional (needed only for files longer than 3 min)." -ForegroundColor White

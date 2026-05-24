@@ -20,7 +20,7 @@ SetupIconFile=assets\icon.ico
 PrivilegesRequired=admin
 
 [Files]
-Source: "dist\{#MyAppExeName}"; DestDir: "{app}"; Flags: ignoreversion
+Source: "dist\RachaelsTranscriber\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Dirs]
 Name: "{app}\models"; Permissions: users-modify

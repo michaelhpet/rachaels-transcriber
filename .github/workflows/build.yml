@@ -26,13 +26,7 @@ jobs:
 
       - name: Build .exe
         run: |
-          pyinstaller --onefile --windowed --name "RachaelsTranscriber" --add-data "engine.py;." --add-data "assets;assets" --add-data "theme.json;." --additional-hooks-dir hooks --hidden-import webrtcvad --collect-data faster_whisper --hidden-import download_models --noconfirm --icon assets\icon.ico gui.py
-
-      - name: Set PE metadata (taskbar icon & name)
-        run: |
-          curl -sL "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -o rcedit.exe
-          rcedit.exe "dist\RachaelsTranscriber.exe" --set-version-string "FileDescription" "Rachael's Transcriber" --set-version-string "ProductName" "Rachael's Transcriber" --set-icon "assets\icon.ico"
-          del rcedit.exe
+          pyinstaller --onedir --windowed --name "RachaelsTranscriber" --add-data "engine.py;." --add-data "assets;assets" --add-data "theme.json;." --additional-hooks-dir hooks --hidden-import webrtcvad --collect-data faster_whisper --hidden-import download_models --noconfirm --icon assets\icon.ico gui.py
 
       - name: Install Inno Setup
         run: choco install innosetup -y
@@ -40,11 +34,14 @@ jobs:
       - name: Build installer
         run: iscc installer.iss
 
-      - name: Upload portable .exe
+      - name: Package portable
+        run: Compress-Archive -Path dist\RachaelsTranscriber -DestinationPath dist\RachaelsTranscriber-Portable.zip -Force
+
+      - name: Upload portable
         uses: actions/upload-artifact@v4
         with:
-          name: RachaelsTranscriber-Windows
-          path: dist/RachaelsTranscriber.exe
+          name: RachaelsTranscriber-Portable
+          path: dist/RachaelsTranscriber-Portable.zip
 
       - name: Upload installer
         uses: actions/upload-artifact@v4

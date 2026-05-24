@@ -48,7 +48,7 @@ pip install webrtcvad-wheels 2>$null
 if ($LASTEXITCODE -ne 0) {
     $extra = "--exclude-module webrtcvad"
 } else {
-    $extra = "--additional-hooks-dir hooks", "--hidden-import webrtcvad"
+    $extra = "--hidden-import webrtcvad"
 }
 
 Write-Host "[3/3] Building executable..." -ForegroundColor Green
@@ -61,6 +61,7 @@ pyinstaller `
     --add-data "theme.json;." `
     --collect-data faster_whisper `
     --hidden-import download_models `
+    --additional-hooks-dir hooks `
     @extra `
     --icon assets\icon.ico `
     --hidden-import faster_whisper `

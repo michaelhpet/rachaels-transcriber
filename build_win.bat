@@ -49,7 +49,7 @@ pip install webrtcvad-wheels 2>nul
 if errorlevel 1 (
     set EXTRA_PYI=--exclude-module webrtcvad
 ) else (
-    set EXTRA_PYI=--additional-hooks-dir hooks --hidden-import webrtcvad
+    set EXTRA_PYI=--hidden-import webrtcvad
 )
 
 echo [3/3] Building executable...
@@ -62,6 +62,7 @@ pyinstaller ^
     --add-data "theme.json;." ^
     --collect-data faster_whisper ^
     --hidden-import download_models ^
+    --additional-hooks-dir hooks ^
     !EXTRA_PYI! ^
     --icon assets\icon.ico ^
     gui.py

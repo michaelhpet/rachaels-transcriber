@@ -1,13 +1,4 @@
-__pycache__/
-*.pyc
-.venv/
-dist/
-build/
-*.spec
+/target
 models/
-assets/icon.iconset/
-test_audio/*.txt
-test_audio/*.srt
-test_audio/*.vtt
-test_audio/*.json
 .DS_Store
+node_modules

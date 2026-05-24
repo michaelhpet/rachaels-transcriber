@@ -8,6 +8,7 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
 use parking_lot::Mutex;
+use tauri::Manager;
 
 use engine::whisper::WhisperEngine;
 use recorder::AudioRecorder;
@@ -31,10 +32,17 @@ impl AppState {
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .setup(|app| {
+            let data_dir = app.path().app_data_dir()?;
+            let models_dir = data_dir.join("models");
+            std::fs::create_dir_all(&models_dir).ok();
+            config::set_models_dir(models_dir);
+            Ok(())
+        })
         .manage(AppState::new())
         .invoke_handler(tauri::generate_handler![
             commands::check_models,
-            commands::download_model,
+            commands::download_models,
             commands::get_models_dir,
             commands::pick_audio_file,
             commands::pick_save_file,

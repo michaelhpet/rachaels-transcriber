@@ -47,25 +47,44 @@ pub fn check_models() -> MissingModels {
 }
 
 #[tauri::command]
-pub async fn download_model(
-    label: String,
+pub async fn download_models(
     app_handle: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let cancel = state.cancel_flag.clone();
     cancel.store(false, Ordering::Relaxed);
 
-    let app_handle_clone = app_handle.clone();
-    let progress_clone = label.clone();
-    download_models::download_model(&label, Some(&cancel), Some(Box::new(move |downloaded, total| {
-        let _ = app_handle_clone.emit("download-progress", DownloadProgress {
-            label: progress_clone.clone(),
-            downloaded,
-            total,
-        });
-    })))
-    .await
-    .map_err(|e| e.to_string())?;
+    let fast_mb = 141u64;
+    let accurate_mb = 465u64;
+    let total_mb = fast_mb + accurate_mb;
+
+    let models = [("Fast", fast_mb), ("Accurate", accurate_mb)];
+    let mut accumulated: u64 = 0;
+
+    for &(label, size_mb) in &models {
+        if download_models::is_model_downloaded(label) {
+            accumulated += size_mb;
+            continue;
+        }
+
+        let app_handle_clone = app_handle.clone();
+        let label_owned = label.to_string();
+        let acc = accumulated;
+
+        download_models::download_model(label, Some(&cancel), Some(Box::new(move |downloaded, total| {
+            let pct = if total > 0 { downloaded as f64 / total as f64 } else { 0.0 };
+            let combined = (acc as f64 + pct * size_mb as f64) as u64;
+            let _ = app_handle_clone.emit("download-progress", DownloadProgress {
+                label: label_owned.clone(),
+                downloaded: combined,
+                total: total_mb,
+            });
+        })))
+        .await
+        .map_err(|e| e.to_string())?;
+
+        accumulated += size_mb;
+    }
 
     let _ = app_handle.emit("download-done", ());
     Ok(())

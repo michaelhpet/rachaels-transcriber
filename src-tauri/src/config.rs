@@ -1,5 +1,5 @@
 use std::path::PathBuf;
-use directories::ProjectDirs;
+use std::sync::OnceLock;
 
 pub const APP_NAME: &str = "RachaelsTranscriber";
 pub const MODEL_ACCURATE: &str = "ggml-small.en.bin";
@@ -11,16 +11,17 @@ pub const WINDOW_SEC: f64 = 4.0;
 pub const TICK_SEC: f64 = 2.0;
 pub const MAX_BUFFER_SEC: f64 = 30.0;
 
-pub fn get_persistent_base() -> PathBuf {
-    if let Some(proj_dirs) = ProjectDirs::from("com", "rachaels", APP_NAME) {
-        proj_dirs.data_local_dir().to_path_buf()
-    } else {
-        PathBuf::from(".")
-    }
+static MODELS_DIR: OnceLock<PathBuf> = OnceLock::new();
+
+pub fn set_models_dir(path: PathBuf) {
+    MODELS_DIR.set(path).ok();
 }
 
 pub fn models_dir() -> PathBuf {
-    get_persistent_base().join("models")
+    MODELS_DIR
+        .get()
+        .cloned()
+        .unwrap_or_else(|| PathBuf::from("models"))
 }
 
 #[allow(dead_code)]

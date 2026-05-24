@@ -21,15 +21,30 @@ jobs:
       - name: Download ffmpeg binaries
         run: |
           if not exist ffmpeg\ffmpeg.exe (
-            curl -sL "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -o ffmpeg.zip
-            tar -xf ffmpeg.zip
-            for /d %%i in (ffmpeg-*-essentials_build) do (
-              mkdir ffmpeg 2>nul
-              move "%%i\bin\ffmpeg.exe" ffmpeg\ >nul
-              move "%%i\bin\ffprobe.exe" ffmpeg\ >nul
-              rmdir /s /q "%%i"
+            if exist ffmpeg.zip del ffmpeg.zip
+            if exist ffmpeg.zip.tmp del ffmpeg.zip.tmp
+            echo Downloading ffmpeg (this may take a few minutes)...
+            curl -L --progress-bar --max-time 180 --retry 3 --fail "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -o ffmpeg.zip.tmp
+            if %ERRORLEVEL% neq 0 (
+              echo [WARNING] Failed to download ffmpeg.
+              if exist ffmpeg.zip.tmp del ffmpeg.zip.tmp
+            ) else (
+              move /y ffmpeg.zip.tmp ffmpeg.zip >nul
+              echo Extracting ffmpeg...
+              tar -xf ffmpeg.zip
+              if %ERRORLEVEL% neq 0 (
+                echo [WARNING] Failed to extract ffmpeg.zip (file may be corrupt).
+              ) else (
+                for /d %%i in (ffmpeg-*-essentials_build) do (
+                  mkdir ffmpeg 2>nul
+                  move "%%i\bin\ffmpeg.exe" ffmpeg\ >nul
+                  move "%%i\bin\ffprobe.exe" ffmpeg\ >nul
+                  rmdir /s /q "%%i"
+                )
+                if exist ffmpeg\ffmpeg.exe ( echo ffmpeg bundled successfully. ) else ( echo [WARNING] ffmpeg binary not found after extraction. )
+              )
+              del ffmpeg.zip
             )
-            del ffmpeg.zip
           )
 
       - name: Install dependencies

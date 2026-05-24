@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="Rachael's Transcriber"
+APP_NAME="RachaelsTranscriber"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 
 echo "Building $APP_NAME for macOS..."
@@ -21,13 +21,17 @@ pyinstaller \
     --windowed \
     --name "$APP_NAME" \
     --add-data "engine.py:." \
-    --add-data "models:models" \
     --add-data "assets:assets" \
+    --add-data "theme.json:." \
+    --hidden-import download_models \
+    --collect-data faster_whisper \
+    --noconfirm \
     --icon "assets/icon.icns" \
     gui.py
 
 echo ""
-echo "Build complete! App bundle:"
-echo "  dist/$APP_NAME.app"
+echo "Build complete!"
+echo "  dist/$APP_NAME"
 echo ""
-echo "To open: open dist/$APP_NAME.app"
+echo "Models are downloaded on first launch (internet required)."
+echo "To open: open dist/$APP_NAME"

@@ -21,16 +21,39 @@ if %ERRORLEVEL% neq 0 (
 
 :: Download and bundle ffmpeg (cached)
 if not exist ffmpeg\ffmpeg.exe (
-    echo Downloading ffmpeg...
-    curl -sL "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -o ffmpeg.zip
-    tar -xf ffmpeg.zip
-    for /d %%i in (ffmpeg-*-essentials_build) do (
-        if not exist ffmpeg mkdir ffmpeg
-        move "%%i\bin\ffmpeg.exe" ffmpeg\ >nul
-        move "%%i\bin\ffprobe.exe" ffmpeg\ >nul
-        rmdir /s /q "%%i"
+    if exist ffmpeg.zip del ffmpeg.zip
+    if exist ffmpeg.zip.tmp del ffmpeg.zip.tmp
+
+    echo Downloading ffmpeg (this may take a few minutes)...
+    curl -L --progress-bar --max-time 180 --retry 3 --fail "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -o ffmpeg.zip.tmp
+    if %ERRORLEVEL% neq 0 (
+        echo [WARNING] Failed to download ffmpeg.
+        echo  The .exe will run without bundled ffmpeg (user must install it separately).
+        echo  To bundle ffmpeg manually, place ffmpeg.exe and ffprobe.exe in the ffmpeg\ directory and re-run.
+        if exist ffmpeg.zip.tmp del ffmpeg.zip.tmp
+    ) else (
+        move /y ffmpeg.zip.tmp ffmpeg.zip >nul
+        echo Extracting ffmpeg...
+        tar -xf ffmpeg.zip
+        if %ERRORLEVEL% neq 0 (
+            echo [WARNING] Failed to extract ffmpeg.zip (file may be corrupt).
+            echo  The .exe will run without bundled ffmpeg.
+        ) else (
+            for /d %%i in (ffmpeg-*-essentials_build) do (
+                if not exist ffmpeg mkdir ffmpeg
+                move "%%i\bin\ffmpeg.exe" ffmpeg\ >nul
+                move "%%i\bin\ffprobe.exe" ffmpeg\ >nul
+                rmdir /s /q "%%i"
+            )
+            if exist ffmpeg\ffmpeg.exe (
+                echo ffmpeg bundled successfully.
+            ) else (
+                echo [WARNING] ffmpeg binary not found after extraction.
+                echo  The .exe will run without bundled ffmpeg.
+            )
+        )
+        del ffmpeg.zip
     )
-    del ffmpeg.zip
 ) else (
     echo ffmpeg already cached, skipping download.
 )

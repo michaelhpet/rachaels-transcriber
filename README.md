@@ -51,7 +51,7 @@ pip install -r requirements.txt
 python gui.py
 ```
 
-**Build a standalone .exe:**
+**Build a standalone .exe or installer:**
 
 ```powershell
 # 1. Install Python 3.12 from https://python.org
@@ -60,12 +60,17 @@ python gui.py
 git clone https://github.com/anomalyco/rachaels-transcriber
 cd rachaels-transcriber
 
-# 4. Build (installs deps + PyInstaller, creates .exe):
+# 4. Build portable .exe (installs deps + PyInstaller):
 .\build_win.ps1
 
-# 5. The .exe is at dist/RachaelsTranscriber.exe
+# The .exe is at dist/RachaelsTranscriber.exe.
 # Transfer it to any Windows machine. Models are downloaded
 # on first launch (internet required).
+
+# Or build an installer with Inno Setup (optional):
+choco install innosetup -y
+iscc installer.iss
+# Installer at dist/RachaelsTranscriber-Setup.exe
 ```
 
 ### Linux

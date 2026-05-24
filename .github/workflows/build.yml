@@ -30,8 +30,20 @@ jobs:
         run: |
           pyinstaller --onefile --windowed --name "RachaelsTranscriber" --add-data "engine.py;." --add-data "assets;assets" --add-data "theme.json;." --collect-data faster_whisper --hidden-import download_models --icon assets\icon.ico gui.py
 
-      - name: Upload artifact
+      - name: Install Inno Setup
+        run: choco install innosetup -y
+
+      - name: Build installer
+        run: iscc installer.iss
+
+      - name: Upload portable .exe
         uses: actions/upload-artifact@v4
         with:
           name: RachaelsTranscriber-Windows
           path: dist/RachaelsTranscriber.exe
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: RachaelsTranscriber-Setup
+          path: dist/RachaelsTranscriber-Setup.exe

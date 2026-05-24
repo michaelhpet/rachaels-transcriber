@@ -15,7 +15,7 @@ function Landing() {
 					<div>
 						<p className="flex flex-col items-center gap-1">
 							<FileText className="size-8 text-blue-500" />
-							File Transcription
+							File transcription
 						</p>
 					</div>
 				</button>
@@ -27,7 +27,7 @@ function Landing() {
 					<div>
 						<p className="flex flex-col items-center gap-1">
 							<Mic className="size-8 text-red-400" />
-							Live Recording
+							Live recording
 						</p>
 					</div>
 				</button>

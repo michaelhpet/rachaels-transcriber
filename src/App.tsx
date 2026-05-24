@@ -3,6 +3,7 @@ import FileTranscribe from "@/components/FileTranscribe";
 import Landing from "@/components/Landing";
 import LiveRecord from "@/components/LiveRecord";
 import { Progress } from "@/components/ui/progress";
+import { TooltipProvider } from "@/components/ui/tooltip";
 import {
 	checkModels,
 	downloadModels,
@@ -54,7 +55,8 @@ function App() {
 	const [modelChoice, setModelChoice] = useState("Accurate");
 
 	const progress = status?.type === "downloading" ? status.progress : 0;
-	const modelsReady = models.accurate && models.fast;
+	const downloading =
+		!(models.accurate && models.fast) || status.type === "downloading";
 
 	useEffect(() => {
 		checkModels().then((m) => {
@@ -106,27 +108,29 @@ function App() {
 				setModelChoice,
 			}}
 		>
-			<div className="h-screen w-screen flex flex-col bg-background text-foreground select-none">
-				{modelsReady ? (
-					<div className="flex flex-col items-center justify-center h-full gap-4">
-						<p className="text-lg">Preparing models...</p>
-						<div className="w-80">
-							<Progress value={Math.round(progress * 100)} />
+			<TooltipProvider>
+				<div className="h-screen w-screen flex flex-col bg-background text-foreground select-none">
+					{downloading ? (
+						<div className="flex flex-col items-center justify-center h-full gap-4">
+							<p className="text-lg">Preparing models...</p>
+							<div className="w-80">
+								<Progress value={Math.round(progress * 100)} />
+							</div>
+							{status.type === "downloading" && (
+								<p className="text-sm text-muted-foreground">
+									{Math.round(progress * 100)}%
+								</p>
+							)}
 						</div>
-						{status.type === "downloading" && (
-							<p className="text-sm text-muted-foreground">
-								{Math.round(progress * 100)}%
-							</p>
-						)}
-					</div>
-				) : view === "landing" ? (
-					<Landing />
-				) : view === "file" ? (
-					<FileTranscribe />
-				) : (
-					<LiveRecord />
-				)}
-			</div>
+					) : view === "landing" ? (
+						<Landing />
+					) : view === "file" ? (
+						<FileTranscribe />
+					) : (
+						<LiveRecord />
+					)}
+				</div>
+			</TooltipProvider>
 		</AppContext.Provider>
 	);
 }

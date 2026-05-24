@@ -6,7 +6,13 @@
 		"useIgnoreFile": true
 	},
 	"files": {
-		"includes": ["**", "!!**/dist", "!!src-tauri"]
+		"includes": [
+			"**",
+			"!!**/dist",
+			"!!src-tauri",
+			"!!src/components/ui",
+			"!!src/hooks"
+		]
 	},
 	"formatter": {
 		"enabled": true,

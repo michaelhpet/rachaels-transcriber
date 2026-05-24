@@ -1,6 +1,7 @@
-import { ArrowLeft, FolderOpen, Play, Save, X } from "lucide-react";
+import { FolderOpen, Play, Save, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useApp } from "@/App";
+import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -10,6 +11,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	SidebarGroup,
+	SidebarGroupContent,
+	SidebarGroupLabel,
+	SidebarMenu,
+	SidebarMenuButton,
+	SidebarMenuItem,
+} from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
 import {
 	cancel,
@@ -27,7 +36,6 @@ import {
 
 function FileTranscribe() {
 	const {
-		setView,
 		status,
 		setStatus,
 		outputText,
@@ -102,64 +110,94 @@ function FileTranscribe() {
 	const transcribePct =
 		status.type === "transcribing" ? status.progress * 100 : 0;
 	const errorMessage = status.type === "error" ? status.message : null;
+	const fileName =
+		filePath && (filePath.split("/").pop() || filePath.split("\\").pop());
 
 	return (
-		<div className="flex flex-col h-full">
-			<div className="flex items-center gap-4 p-4 border-b border-border">
-				<Button variant="ghost" onClick={() => setView("landing")}>
-					<ArrowLeft className="size-4" />
-					Back
-				</Button>
-				<h1 className="text-xl font-bold">File Transcription</h1>
-			</div>
-
-			<div className="flex-1 flex flex-col items-center justify-center gap-6 p-8">
-				<div className="flex gap-4 items-center">
-					<Button variant="default" onClick={handlePick}>
-						<FolderOpen className="size-4" />
-						{filePath ? "Change File" : "Select Audio File"}
-					</Button>
-					{filePath && (
-						<span className="text-sm text-muted-foreground truncate max-w-64">
-							{filePath.split("/").pop() || filePath.split("\\").pop()}
-						</span>
-					)}
-				</div>
-
-				<div className="flex gap-4 items-center">
-					<span className="text-sm text-muted-foreground">Model:</span>
-					<Select value={modelChoice} onValueChange={setModelChoice}>
-						<SelectTrigger className="w-48">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="Accurate">Accurate (small.en)</SelectItem>
-							<SelectItem value="Fast">Fast (base.en)</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
-
-				{filePath && !transcribing && (
-					<Button variant="default" size="lg" onClick={handleTranscribe}>
-						<Play className="size-4" />
-						Transcribe
-					</Button>
-				)}
-
+		<Layout
+			sidebar={
+				<>
+					<SidebarGroup>
+						<SidebarGroupLabel>File</SidebarGroupLabel>
+						<SidebarGroupContent>
+							<SidebarMenu>
+								<SidebarMenuItem>
+									<SidebarMenuButton
+										tooltip="Select Audio File"
+										onClick={handlePick}
+									>
+										<FolderOpen />
+										<span>{fileName || "Select Audio File"}</span>
+									</SidebarMenuButton>
+								</SidebarMenuItem>
+							</SidebarMenu>
+						</SidebarGroupContent>
+					</SidebarGroup>
+					<SidebarGroup>
+						<SidebarGroupLabel>Model</SidebarGroupLabel>
+						<SidebarGroupContent>
+							<div className="px-2">
+								<Select value={modelChoice} onValueChange={setModelChoice}>
+									<SelectTrigger>
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="Accurate">
+											Accurate (small.en)
+										</SelectItem>
+										<SelectItem value="Fast">Fast (base.en)</SelectItem>
+									</SelectContent>
+								</Select>
+							</div>
+						</SidebarGroupContent>
+					</SidebarGroup>
+					<SidebarGroup>
+						<SidebarGroupContent>
+							<SidebarMenu>
+								{!transcribing && filePath && (
+									<SidebarMenuItem>
+										<SidebarMenuButton
+											tooltip="Start transcription"
+											onClick={handleTranscribe}
+										>
+											<Play />
+											<span>Transcribe</span>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								)}
+								{transcribing && (
+									<div className="flex flex-col gap-2 px-2">
+										<Progress value={Math.round(transcribePct)} />
+										<Button
+											variant="destructive"
+											size="sm"
+											onClick={handleCancel}
+										>
+											<X className="size-4" />
+											Cancel
+										</Button>
+									</div>
+								)}
+							</SidebarMenu>
+						</SidebarGroupContent>
+					</SidebarGroup>
+				</>
+			}
+			errorMessage={errorMessage}
+		>
+			<div className="flex flex-col h-full p-6 gap-4">
 				{transcribing && (
-					<div className="flex flex-col items-center gap-4 w-full max-w-lg">
-						<Progress value={Math.round(transcribePct)} className="w-full" />
-						<Button variant="destructive" onClick={handleCancel}>
-							<X className="size-4" />
-							Cancel
-						</Button>
+					<div>
+						<p className="text-sm text-muted-foreground">
+							Transcribing... {Math.round(transcribePct)}%
+						</p>
 					</div>
 				)}
 
-				{outputText && (
-					<div className="w-full max-w-2xl flex flex-col gap-4">
+				{outputText ? (
+					<div className="flex-1 flex flex-col gap-3 min-h-0">
 						<Textarea
-							className="w-full h-48 font-mono resize-none"
+							className="flex-1 font-mono resize-none"
 							value={outputText}
 							readOnly
 						/>
@@ -168,11 +206,13 @@ function FileTranscribe() {
 							Save to File
 						</Button>
 					</div>
+				) : (
+					<div className="flex-1 flex items-center justify-center text-muted-foreground">
+						Select an audio file and start transcription
+					</div>
 				)}
-
-				{errorMessage && <p className="text-destructive">{errorMessage}</p>}
 			</div>
-		</div>
+		</Layout>
 	);
 }
 

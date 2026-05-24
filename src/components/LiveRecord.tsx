@@ -1,6 +1,7 @@
-import { ArrowLeft, Mic, Save, Square, X } from "lucide-react";
+import { Mic, Save, Square, X } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/App";
+import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import {
 	Select,
@@ -9,6 +10,14 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
+import {
+	SidebarGroup,
+	SidebarGroupContent,
+	SidebarGroupLabel,
+	SidebarMenu,
+	SidebarMenuButton,
+	SidebarMenuItem,
+} from "@/components/ui/sidebar";
 import { Textarea } from "@/components/ui/textarea";
 import {
 	cancel,
@@ -26,7 +35,6 @@ import {
 
 function LiveRecord() {
 	const {
-		setView,
 		status,
 		setStatus,
 		outputText,
@@ -118,70 +126,81 @@ function LiveRecord() {
 	};
 
 	return (
-		<div className="flex flex-col h-full">
-			<div className="flex items-center gap-4 p-4 border-b border-border">
-				<Button variant="ghost" onClick={() => setView("landing")}>
-					<ArrowLeft className="size-4" />
-					Back
-				</Button>
-				<h1 className="text-xl font-bold">Live Recording</h1>
-			</div>
-
-			<div className="flex-1 flex flex-col items-center justify-center gap-6 p-8">
-				<div className="flex gap-4 items-center">
-					<span className="text-sm text-muted-foreground">Model:</span>
-					<Select value={modelChoice} onValueChange={setModelChoice}>
-						<SelectTrigger className="w-48">
-							<SelectValue />
-						</SelectTrigger>
-						<SelectContent>
-							<SelectItem value="Accurate">Accurate (small.en)</SelectItem>
-							<SelectItem value="Fast">Fast (base.en)</SelectItem>
-						</SelectContent>
-					</Select>
-				</div>
-
-				{recording ? (
-					<div className="flex flex-col items-center gap-4">
-						<div className="flex flex-col items-center gap-2">
-							<div className="size-20 rounded-full bg-destructive flex items-center justify-center animate-pulse">
-								<span className="text-destructive-foreground text-lg font-bold">
-									{formatTime(elapsed)}
-								</span>
+		<Layout
+			sidebar={
+				<>
+					<SidebarGroup>
+						<SidebarGroupLabel>Model</SidebarGroupLabel>
+						<SidebarGroupContent>
+							<div className="px-2">
+								<Select value={modelChoice} onValueChange={setModelChoice}>
+									<SelectTrigger>
+										<SelectValue />
+									</SelectTrigger>
+									<SelectContent>
+										<SelectItem value="Accurate">
+											Accurate (small.en)
+										</SelectItem>
+										<SelectItem value="Fast">Fast (base.en)</SelectItem>
+									</SelectContent>
+								</Select>
 							</div>
-						</div>
-						<div className="flex gap-4">
-							<Button variant="destructive" size="lg" onClick={handleStop}>
-								<Square className="size-4" />
-								Stop
-							</Button>
-							<Button variant="outline" onClick={handleCancel}>
-								<X className="size-4" />
-								Cancel
-							</Button>
-						</div>
-					</div>
-				) : (
-					<Button
-						variant="destructive"
-						size="icon"
-						className="size-20 rounded-full"
-						onClick={handleStart}
-					>
-						<Mic className="size-8" />
-					</Button>
-				)}
-
+						</SidebarGroupContent>
+					</SidebarGroup>
+					<SidebarGroup>
+						<SidebarGroupLabel>Controls</SidebarGroupLabel>
+						<SidebarGroupContent>
+							<SidebarMenu>
+								{recording ? (
+									<div className="flex flex-col gap-2 px-2">
+										<div className="flex items-center gap-2 text-destructive">
+											<div className="size-2 rounded-full bg-destructive animate-pulse" />
+											<span className="text-sm font-mono">
+												{formatTime(elapsed)}
+											</span>
+										</div>
+										<Button
+											variant="destructive"
+											size="sm"
+											onClick={handleStop}
+										>
+											<Square className="size-4" />
+											Stop
+										</Button>
+										<Button variant="outline" size="sm" onClick={handleCancel}>
+											<X className="size-4" />
+											Cancel
+										</Button>
+									</div>
+								) : (
+									<SidebarMenuItem>
+										<SidebarMenuButton
+											tooltip="Start recording"
+											onClick={handleStart}
+										>
+											<Mic />
+											<span>Record</span>
+										</SidebarMenuButton>
+									</SidebarMenuItem>
+								)}
+							</SidebarMenu>
+						</SidebarGroupContent>
+					</SidebarGroup>
+				</>
+			}
+			errorMessage={errorMessage}
+		>
+			<div className="flex flex-col h-full p-6 gap-4">
 				{recordingText && (
-					<p className="text-muted-foreground text-sm max-w-lg text-center italic">
+					<p className="text-sm text-muted-foreground italic">
 						{recordingText}
 					</p>
 				)}
 
-				{outputText && (
-					<div className="w-full max-w-2xl flex flex-col gap-4">
+				{outputText ? (
+					<div className="flex-1 flex flex-col gap-3 min-h-0">
 						<Textarea
-							className="w-full h-48 font-mono resize-none"
+							className="flex-1 font-mono resize-none"
 							value={outputText}
 							readOnly
 						/>
@@ -190,11 +209,15 @@ function LiveRecord() {
 							Save Transcript
 						</Button>
 					</div>
+				) : (
+					<div className="flex-1 flex items-center justify-center text-muted-foreground">
+						{recording
+							? "Listening..."
+							: "Press Record to start live transcription"}
+					</div>
 				)}
-
-				{errorMessage && <p className="text-destructive">{errorMessage}</p>}
 			</div>
-		</div>
+		</Layout>
 	);
 }
 

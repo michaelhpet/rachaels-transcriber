@@ -14,11 +14,23 @@ HERE = Path(__file__).parent.resolve()
 MODELS_DIR = HERE / "models"
 
 
-def download(name):
-    repo_id = MODELS[name]
-    dest = MODELS_DIR / name
+def is_complete(dest):
+    if not dest.is_dir():
+        return False
+    model_bin = dest / "model.bin"
+    if model_bin.exists():
+        return True
+    shards = list(dest.glob("model.bin.*"))
+    if shards:
+        return True
+    return False
 
-    if dest.is_dir() and any(dest.iterdir()):
+
+def download(name, dest_dir=None):
+    repo_id = MODELS[name]
+    dest = Path(dest_dir or MODELS_DIR) / name
+
+    if is_complete(dest):
         print(f"  [{name}] already exists at {dest}")
         return
 

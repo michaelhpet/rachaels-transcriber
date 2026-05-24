@@ -52,6 +52,7 @@ pyinstaller ^
     --add-data "engine.py;." ^
     --add-data "assets;assets" ^
     --add-data "theme.json;." ^
+    --collect-data faster_whisper ^
     --hidden-import download_models ^
     --icon assets\icon.ico ^
     clean=False ^

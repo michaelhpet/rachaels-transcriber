@@ -10,7 +10,7 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
-from engine import TranscriptionEngine, MODELS
+from engine import TranscriptionEngine, MODELS, get_persistent_base
 
 
 class _ThreadSafeBuffer(io.StringIO):
@@ -81,9 +81,9 @@ class TranscriberApp(ctk.CTk):
                 return
 
     def _check_and_download_models(self):
-        base = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
-        models_dir = base / "models"
-        missing = [m for m in MODELS if not (models_dir / m).is_dir()]
+        from download_models import is_complete
+        models_dir = get_persistent_base() / "models"
+        missing = [m for m in MODELS if not is_complete(models_dir / m)]
         if not missing:
             return
 
@@ -125,7 +125,7 @@ class TranscriberApp(ctk.CTk):
 
         def run():
             try:
-                from download_models import download as dl
+                from download_models import download as dl, is_complete
                 for model in missing:
                     buffer.write(f"[{model}] Downloading...\n")
                     old_out = sys.stdout
@@ -133,10 +133,12 @@ class TranscriberApp(ctk.CTk):
                     sys.stdout = buffer
                     sys.stderr = buffer
                     try:
-                        dl(model)
+                        dl(model, dest_dir=str(models_dir))
                     finally:
                         sys.stdout = old_out
                         sys.stderr = old_err
+                        if is_complete(models_dir / model):
+                            buffer.write(f"[{model}] Complete.\n")
             except Exception as e:
                 import traceback
                 failed_slot.append(traceback.format_exc())

@@ -14,6 +14,12 @@ MODELS = ["small.en", "base.en"]
 CHUNK_OVERLAP = 2
 
 
+def get_persistent_base():
+    if getattr(sys, "frozen", False):
+        return Path(sys.executable).parent
+    return Path(__file__).parent
+
+
 def format_as_txt(result):
     return result["text"]
 
@@ -80,9 +86,14 @@ class TranscriptionEngine:
         self._models = {}
 
     def _get_model_path(self, model_name):
-        base = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
-        local = base / "models" / model_name
-        return str(local) if local.is_dir() else model_name
+        candidates = []
+        candidates.append(get_persistent_base() / "models" / model_name)
+        if hasattr(sys, "_MEIPASS"):
+            candidates.append(Path(sys._MEIPASS) / "models" / model_name)
+        for p in candidates:
+            if p.is_dir():
+                return str(p)
+        return model_name
 
     def _get_model(self, model_name, device="auto"):
         if model_name not in self._models:

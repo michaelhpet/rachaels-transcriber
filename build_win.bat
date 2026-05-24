@@ -19,44 +19,6 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
-:: Download and bundle ffmpeg (cached)
-if exist ffmpeg\ffmpeg.exe goto :skip_ffmpeg_dl
-if exist ffmpeg.zip del ffmpeg.zip
-if exist ffmpeg.zip.tmp del ffmpeg.zip.tmp
-
-echo Downloading ffmpeg (this may take a few minutes)...
-curl -L --progress-bar --max-time 180 --retry 3 --fail "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -o ffmpeg.zip.tmp
-if %ERRORLEVEL% neq 0 (
-    echo [WARNING] Failed to download ffmpeg.
-    echo  The .exe will run without bundled ffmpeg (user must install it separately).
-    echo  To bundle ffmpeg manually, place ffmpeg.exe and ffprobe.exe in the ffmpeg\ directory and re-run.
-    if exist ffmpeg.zip.tmp del ffmpeg.zip.tmp
-    goto :skip_ffmpeg_dl
-)
-move /y ffmpeg.zip.tmp ffmpeg.zip >nul
-echo Extracting ffmpeg...
-tar -xf ffmpeg.zip
-if %ERRORLEVEL% neq 0 (
-    echo [WARNING] Failed to extract ffmpeg.zip (file may be corrupt).
-    echo  The .exe will run without bundled ffmpeg.
-    del ffmpeg.zip
-    goto :skip_ffmpeg_dl
-)
-for /d %%i in (ffmpeg-*-essentials_build) do (
-    if not exist ffmpeg mkdir ffmpeg
-    move "%%i\bin\ffmpeg.exe" ffmpeg\ >nul
-    move "%%i\bin\ffprobe.exe" ffmpeg\ >nul
-    rmdir /s /q "%%i"
-)
-if exist ffmpeg\ffmpeg.exe (
-    echo ffmpeg bundled successfully.
-) else (
-    echo [WARNING] ffmpeg binary not found after extraction.
-    echo  The .exe will run without bundled ffmpeg.
-)
-del ffmpeg.zip
-:skip_ffmpeg_dl
-
 echo [1/3] Installing Python dependencies...
 pip install -r requirements.txt
 if %ERRORLEVEL% neq 0 (
@@ -89,7 +51,6 @@ pyinstaller ^
     --add-data "engine.py;." ^
     --add-data "assets;assets" ^
     --add-data "theme.json;." ^
-    --add-data "ffmpeg;ffmpeg" ^
     --collect-data faster_whisper ^
     --hidden-import download_models ^
     --additional-hooks-dir hooks ^
@@ -118,7 +79,7 @@ echo  Size:
 dir "dist\%APP_NAME%.exe" | findstr /i "%APP_NAME%"
 echo.
 echo  Models are downloaded on first launch (internet required).
-echo  ffmpeg is bundled — no separate install needed.
+echo  ffmpeg is optional (needed only for files longer than 3 min).
 echo ============================================
 
 pause

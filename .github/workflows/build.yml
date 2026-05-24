@@ -18,36 +18,6 @@ jobs:
         with:
           python-version: "3.12"
 
-      - name: Download ffmpeg binaries
-        run: |
-          if exist ffmpeg\ffmpeg.exe goto :skip_ffmpeg
-          if exist ffmpeg.zip del ffmpeg.zip
-          if exist ffmpeg.zip.tmp del ffmpeg.zip.tmp
-          echo Downloading ffmpeg (this may take a few minutes)...
-          curl -L --progress-bar --max-time 180 --retry 3 --fail "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip" -o ffmpeg.zip.tmp
-          if %ERRORLEVEL% neq 0 (
-            echo [WARNING] Failed to download ffmpeg.
-            if exist ffmpeg.zip.tmp del ffmpeg.zip.tmp
-            goto :skip_ffmpeg
-          )
-          move /y ffmpeg.zip.tmp ffmpeg.zip >nul
-          echo Extracting ffmpeg...
-          tar -xf ffmpeg.zip
-          if %ERRORLEVEL% neq 0 (
-            echo [WARNING] Failed to extract ffmpeg.zip (file may be corrupt).
-            del ffmpeg.zip
-            goto :skip_ffmpeg
-          )
-          for /d %%i in (ffmpeg-*-essentials_build) do (
-            mkdir ffmpeg 2>nul
-            move "%%i\bin\ffmpeg.exe" ffmpeg\ >nul
-            move "%%i\bin\ffprobe.exe" ffmpeg\ >nul
-            rmdir /s /q "%%i"
-          )
-          if exist ffmpeg\ffmpeg.exe ( echo ffmpeg bundled successfully. ) else ( echo [WARNING] ffmpeg binary not found after extraction. )
-          del ffmpeg.zip
-          :skip_ffmpeg
-
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
@@ -56,7 +26,7 @@ jobs:
 
       - name: Build .exe
         run: |
-          pyinstaller --onefile --windowed --name "RachaelsTranscriber" --add-data "engine.py;." --add-data "assets;assets" --add-data "theme.json;." --add-data "ffmpeg;ffmpeg" --additional-hooks-dir hooks --hidden-import webrtcvad --collect-data faster_whisper --hidden-import download_models --noconfirm --icon assets\icon.ico gui.py
+          pyinstaller --onefile --windowed --name "RachaelsTranscriber" --add-data "engine.py;." --add-data "assets;assets" --add-data "theme.json;." --additional-hooks-dir hooks --hidden-import webrtcvad --collect-data faster_whisper --hidden-import download_models --noconfirm --icon assets\icon.ico gui.py
 
       - name: Set PE metadata (taskbar icon & name)
         run: |

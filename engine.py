@@ -31,18 +31,9 @@ def get_persistent_base():
 
 def _find_ff(name):
     name_exe = f"{name}.exe" if platform.system() == "Windows" else name
-    search_dirs = []
-    if getattr(sys, "frozen", False):
-        search_dirs.append(Path(sys.executable).parent / "ffmpeg")
-        search_dirs.append(Path(sys.executable).parent)
-    if hasattr(sys, "_MEIPASS"):
-        search_dirs.append(Path(sys._MEIPASS) / "ffmpeg")
-        search_dirs.append(Path(sys._MEIPASS))
-    search_dirs.append(Path(__file__).parent / "ffmpeg")
-    for d in search_dirs:
-        p = d / name_exe
-        if p.is_file():
-            return str(p)
+    p = Path(__file__).parent / "ffmpeg" / name_exe
+    if p.is_file():
+        return str(p)
     found = shutil.which(name)
     if found:
         return found
@@ -101,7 +92,10 @@ def get_audio_duration(audio_path):
         )
     except FileNotFoundError:
         raise RuntimeError(
-            f"ffprobe not found. The ffmpeg binary is missing from the bundle."
+            "ffprobe not found. Install ffmpeg to transcribe long audio.\n"
+            "  Windows: winget install ffmpeg  or  choco install ffmpeg\n"
+            "  macOS:   brew install ffmpeg\n"
+            "  Linux:   sudo apt install ffmpeg"
         )
     if result.returncode != 0:
         raise RuntimeError(
@@ -122,7 +116,10 @@ def extract_chunk(audio_path, start, duration, output_path):
         )
     except FileNotFoundError:
         raise RuntimeError(
-            "ffmpeg not found. The ffmpeg binary is missing from the bundle."
+            "ffmpeg not found. Install ffmpeg to transcribe long audio.\n"
+            "  Windows: winget install ffmpeg  or  choco install ffmpeg\n"
+            "  macOS:   brew install ffmpeg\n"
+            "  Linux:   sudo apt install ffmpeg"
         )
     if result.returncode != 0:
         raise RuntimeError(
@@ -273,9 +270,15 @@ class TranscriptionEngine:
         if chunk_minutes <= 0:
             raise ValueError("chunk_minutes must be > 0")
 
-        duration = get_audio_duration(audio_path)
+        try:
+            duration = get_audio_duration(audio_path)
+        except (RuntimeError, FileNotFoundError):
+            duration = None
 
-        if duration <= chunk_minutes * 60:
+        if duration is None or duration <= chunk_minutes * 60:
+            if duration is None:
+                _emit({"status": "loading",
+                       "message": "ffmpeg not found — transcribing without chunking"})
             return self.transcribe(
                 audio_path=audio_path,
                 model_name=model_name,

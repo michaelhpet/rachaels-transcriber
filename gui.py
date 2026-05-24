@@ -10,7 +10,7 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
-from engine import TranscriptionEngine, MODELS, get_persistent_base, check_ffmpeg
+from engine import TranscriptionEngine, MODELS, get_persistent_base
 
 
 class _ThreadSafeBuffer(io.StringIO):
@@ -67,7 +67,6 @@ class TranscriberApp(ctk.CTk):
         self._build_ui()
         self._poll_queue()
         self.after(0, self._check_and_download_models)
-        self.after(200, self._check_ffmpeg)
 
     def _set_window_icon(self):
         base = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
@@ -82,9 +81,23 @@ class TranscriberApp(ctk.CTk):
                 return
 
     def _check_and_download_models(self):
-        from download_models import is_complete
+        def _is_complete(dest):
+            if not dest.is_dir():
+                return False
+            if (dest / "model.bin").exists():
+                return True
+            return bool(list(dest.glob("model.bin.*")))
+
         models_dir = get_persistent_base() / "models"
-        missing = [m for m in MODELS if not is_complete(models_dir / m)]
+        local_dir = Path(__file__).parent / "models"
+
+        missing = []
+        for m in MODELS:
+            if _is_complete(models_dir / m):
+                continue
+            if _is_complete(local_dir / m):
+                continue
+            missing.append(m)
         if not missing:
             return
 
@@ -126,7 +139,7 @@ class TranscriberApp(ctk.CTk):
 
         def run():
             try:
-                from download_models import download as dl, is_complete
+                from download_models import download as dl
                 for model in missing:
                     buffer.write(f"[{model}] Downloading...\n")
                     old_out = sys.stdout
@@ -138,7 +151,7 @@ class TranscriberApp(ctk.CTk):
                     finally:
                         sys.stdout = old_out
                         sys.stderr = old_err
-                        if is_complete(models_dir / model):
+                        if _is_complete(models_dir / model):
                             buffer.write(f"[{model}] Complete.\n")
             except Exception as e:
                 import traceback
@@ -182,19 +195,6 @@ class TranscriberApp(ctk.CTk):
             else:
                 self.quit()
                 sys.exit(1)
-
-    def _check_ffmpeg(self):
-        missing = check_ffmpeg()
-        if missing is not None:
-            messagebox.showwarning(
-                "ffmpeg not found",
-                f"'{missing}' was not found on your system.\n\n"
-                "Audio processing requires ffmpeg.\n\n"
-                "  Windows: choco install ffmpeg\n"
-                "  macOS:   brew install ffmpeg\n"
-                "  Linux:   sudo apt install ffmpeg\n\n"
-                "Install ffmpeg and restart the app."
-            )
 
     # ── Layout ────────────────────────────────────────────
 

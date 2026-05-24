@@ -17,45 +17,6 @@ try {
     exit 1
 }
 
-# Download and bundle ffmpeg (cached)
-if (-not (Test-Path "ffmpeg\ffmpeg.exe")) {
-    # Clean any stale files from previous interrupted runs
-    if (Test-Path ffmpeg.zip) { Remove-Item ffmpeg.zip -Force }
-    if (Test-Path ffmpeg.zip.tmp) { Remove-Item ffmpeg.zip.tmp -Force }
-
-    Write-Host "Downloading ffmpeg (this may take a few minutes)..." -ForegroundColor Yellow
-    $ffmpegUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip"
-    try {
-        Invoke-WebRequest -Uri $ffmpegUrl -OutFile ffmpeg.zip.tmp -TimeoutSec 180 -ErrorAction Stop
-        Rename-Item ffmpeg.zip.tmp ffmpeg.zip -Force
-        Write-Host "Extracting ffmpeg..." -ForegroundColor Yellow
-        Expand-Archive -Path ffmpeg.zip -DestinationPath . -Force
-        $dir = Get-ChildItem -Directory "ffmpeg-*-essentials_build" | Select-Object -First 1
-        if ($dir) {
-            New-Item -ItemType Directory -Force -Name ffmpeg | Out-Null
-            Move-Item "$dir\bin\ffmpeg.exe" ffmpeg\ -Force
-            Move-Item "$dir\bin\ffprobe.exe" ffmpeg\ -Force
-            Remove-Item $dir -Recurse -Force
-        }
-        Remove-Item ffmpeg.zip -Force
-        if (Test-Path "ffmpeg\ffmpeg.exe") {
-            Write-Host "ffmpeg bundled successfully." -ForegroundColor Green
-        } else {
-            Write-Host "[WARNING] ffmpeg binary not found after extraction." -ForegroundColor Yellow
-            Write-Host " The .exe will run without bundled ffmpeg." -ForegroundColor Yellow
-            Write-Host " To bundle manually, place ffmpeg.exe and ffprobe.exe in the ffmpeg\ directory and re-run." -ForegroundColor Yellow
-        }
-    } catch {
-        Write-Host "[WARNING] Failed to download ffmpeg: $($_.Exception.Message)" -ForegroundColor Yellow
-        Write-Host " The .exe will run without bundled ffmpeg (user must install it separately)." -ForegroundColor Yellow
-        Write-Host " To bundle manually, place ffmpeg.exe and ffprobe.exe in the ffmpeg\ directory and re-run." -ForegroundColor Yellow
-        if (Test-Path ffmpeg.zip.tmp) { Remove-Item ffmpeg.zip.tmp -Force }
-        if (Test-Path ffmpeg.zip) { Remove-Item ffmpeg.zip -Force }
-    }
-} else {
-    Write-Host "ffmpeg already cached, skipping download." -ForegroundColor Cyan
-}
-
 Write-Host "[1/3] Installing Python dependencies..." -ForegroundColor Green
 pip install -r requirements.txt
 if ($LASTEXITCODE -ne 0) {
@@ -88,7 +49,6 @@ pyinstaller `
     --add-data "engine.py;." `
     --add-data "assets;assets" `
     --add-data "theme.json;." `
-    --add-data "ffmpeg;ffmpeg" `
     --collect-data faster_whisper `
     --hidden-import download_models `
     --additional-hooks-dir hooks `
@@ -120,7 +80,7 @@ $size = (Get-Item "dist\$AppName.exe").Length / 1MB
 Write-Host (" Size: {0:N1} MB" -f $size) -ForegroundColor Green
 Write-Host ""
 Write-Host " Models are downloaded on first launch (internet required)." -ForegroundColor White
-Write-Host " ffmpeg is bundled — no separate install needed." -ForegroundColor White
+Write-Host " ffmpeg is optional (needed only for files longer than 3 min)." -ForegroundColor White
 Write-Host "============================================" -ForegroundColor Green
 
 pause

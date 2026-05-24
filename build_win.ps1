@@ -76,6 +76,12 @@ if ($LASTEXITCODE -ne 0) {
     exit 1
 }
 
+# Set PE metadata for proper taskbar icon and name
+Write-Host "Setting PE metadata..." -ForegroundColor Cyan
+curl -sL "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -o rcedit.exe
+& .\rcedit.exe "dist\$AppName.exe" --set-version-string "FileDescription" "Rachael's Transcriber" --set-version-string "ProductName" "Rachael's Transcriber" --set-icon "assets\icon.ico"
+Remove-Item rcedit.exe
+
 Write-Host ""
 Write-Host "============================================" -ForegroundColor Green
 Write-Host " SUCCESS!" -ForegroundColor Green

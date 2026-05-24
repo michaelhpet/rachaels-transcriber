@@ -10,7 +10,7 @@ import customtkinter as ctk
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
-from engine import TranscriptionEngine, MODELS, get_persistent_base
+from engine import TranscriptionEngine, MODELS, get_persistent_base, check_ffmpeg
 
 
 class _ThreadSafeBuffer(io.StringIO):
@@ -67,6 +67,7 @@ class TranscriberApp(ctk.CTk):
         self._build_ui()
         self._poll_queue()
         self.after(0, self._check_and_download_models)
+        self.after(200, self._check_ffmpeg)
 
     def _set_window_icon(self):
         base = Path(getattr(sys, "_MEIPASS", Path(__file__).parent))
@@ -181,6 +182,19 @@ class TranscriberApp(ctk.CTk):
             else:
                 self.quit()
                 sys.exit(1)
+
+    def _check_ffmpeg(self):
+        missing = check_ffmpeg()
+        if missing is not None:
+            messagebox.showwarning(
+                "ffmpeg not found",
+                f"'{missing}' was not found on your system.\n\n"
+                "Audio processing requires ffmpeg.\n\n"
+                "  Windows: choco install ffmpeg\n"
+                "  macOS:   brew install ffmpeg\n"
+                "  Linux:   sudo apt install ffmpeg\n\n"
+                "Install ffmpeg and restart the app."
+            )
 
     # ── Layout ────────────────────────────────────────────
 

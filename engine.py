@@ -1,4 +1,6 @@
 import os
+import platform
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -16,8 +18,22 @@ CHUNK_OVERLAP = 2
 
 def get_persistent_base():
     if getattr(sys, "frozen", False):
-        return Path(sys.executable).parent
+        system = platform.system()
+        if system == "Windows":
+            base = Path(os.environ.get("APPDATA", Path.home() / "AppData" / "Roaming"))
+        elif system == "Darwin":
+            base = Path.home() / "Library" / "Application Support"
+        else:
+            base = Path.home() / ".local" / "share"
+        return base / "RachaelsTranscriber"
     return Path(__file__).parent
+
+
+def check_ffmpeg():
+    for name in ("ffmpeg", "ffprobe"):
+        if shutil.which(name) is None:
+            return name
+    return None
 
 
 def format_as_txt(result):
@@ -55,22 +71,48 @@ class IncrementalFileWriter:
 
 
 def get_audio_duration(audio_path):
-    result = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_entries",
-         "format=duration", "-of", "default=noprint_wrappers=1:nokey=1",
-         str(audio_path)],
-        capture_output=True, text=True, timeout=30,
-    )
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "error", "-show_entries",
+             "format=duration", "-of", "default=noprint_wrappers=1:nokey=1",
+             str(audio_path)],
+            capture_output=True, text=True, timeout=30,
+        )
+    except FileNotFoundError:
+        raise RuntimeError(
+            "ffprobe not found. Install ffmpeg to use this app.\n"
+            "  Windows: choco install ffmpeg  or  winget install ffmpeg\n"
+            "  macOS:   brew install ffmpeg\n"
+            "  Linux:   sudo apt install ffmpeg"
+        )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Failed to read audio duration from {audio_path}.\n"
+            f"ffprobe error: {result.stderr.strip()}"
+        )
     return float(result.stdout.strip())
 
 
 def extract_chunk(audio_path, start, duration, output_path):
-    subprocess.run(
-        ["ffmpeg", "-y", "-ss", str(start), "-t", str(duration),
-         "-i", str(audio_path), "-ar", "16000", "-ac", "1",
-         "-sample_fmt", "s16", str(output_path)],
-        capture_output=True, timeout=300,
-    )
+    try:
+        result = subprocess.run(
+            ["ffmpeg", "-y", "-ss", str(start), "-t", str(duration),
+             "-i", str(audio_path), "-ar", "16000", "-ac", "1",
+             "-sample_fmt", "s16", str(output_path)],
+            capture_output=True, timeout=300,
+        )
+    except FileNotFoundError:
+        raise RuntimeError(
+            "ffmpeg not found. Install ffmpeg to use this app.\n"
+            "  Windows: choco install ffmpeg  or  winget install ffmpeg\n"
+            "  macOS:   brew install ffmpeg\n"
+            "  Linux:   sudo apt install ffmpeg"
+        )
+    if result.returncode != 0:
+        raise RuntimeError(
+            f"Failed to extract audio chunk.\n"
+            f"ffmpeg error: {result.stderr.strip()}"
+        )
 
 
 def deduplicate_segments(new_segments, prev_chunk_end):

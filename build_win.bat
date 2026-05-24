@@ -74,6 +74,12 @@ if %ERRORLEVEL% neq 0 (
     exit /b 1
 )
 
+:: Set PE metadata for proper taskbar icon and name
+echo Setting PE metadata...
+curl -sL "https://github.com/electron/rcedit/releases/download/v2.0.0/rcedit-x64.exe" -o rcedit.exe
+rcedit.exe "dist\%APP_NAME%.exe" --set-version-string "FileDescription" "Rachael's Transcriber" --set-version-string "ProductName" "Rachael's Transcriber" --set-icon "assets\icon.ico"
+del rcedit.exe
+
 echo.
 echo ============================================
 echo  SUCCESS!

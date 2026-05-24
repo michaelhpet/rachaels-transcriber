@@ -17,6 +17,9 @@ pub struct AppState {
     pub cancel_flag: Arc<AtomicBool>,
     pub engine: Mutex<Option<WhisperEngine>>,
     pub recorder: Mutex<Option<AudioRecorder>>,
+    pub save_audio_path: Mutex<Option<std::path::PathBuf>>,
+    pub save_transcript_path: Mutex<Option<std::path::PathBuf>>,
+    pub vad_enabled: Arc<AtomicBool>,
 }
 
 impl AppState {
@@ -25,6 +28,9 @@ impl AppState {
             cancel_flag: Arc::new(AtomicBool::new(false)),
             engine: Mutex::new(None),
             recorder: Mutex::new(None),
+            save_audio_path: Mutex::new(None),
+            save_transcript_path: Mutex::new(None),
+            vad_enabled: Arc::new(AtomicBool::new(true)),
         }
     }
 }

@@ -1,3 +1,5 @@
+import { ArrowLeft } from "lucide-react";
+import type { ReactNode } from "react";
 import { useApp } from "@/App";
 import {
 	Sidebar,
@@ -8,8 +10,6 @@ import {
 	SidebarProvider,
 	SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { ArrowLeft } from "lucide-react";
-import type { ReactNode } from "react";
 import { Button } from "./ui/button";
 
 interface LayoutProps {

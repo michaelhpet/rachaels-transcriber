@@ -1,8 +1,9 @@
-import { Mic, Save, Square, X } from "lucide-react";
+import { FolderOpen, Mic, Save, Square } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useApp } from "@/App";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import {
 	Select,
 	SelectContent,
@@ -10,17 +11,10 @@ import {
 	SelectTrigger,
 	SelectValue,
 } from "@/components/ui/select";
-import {
-	SidebarGroup,
-	SidebarGroupContent,
-	SidebarGroupLabel,
-	SidebarMenu,
-	SidebarMenuButton,
-	SidebarMenuItem,
-} from "@/components/ui/sidebar";
+import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import {
-	cancel,
 	pickSaveFile,
 	saveTextFile,
 	startRecording,
@@ -44,6 +38,11 @@ function LiveRecord() {
 	} = useApp();
 	const [recording, setRecording] = useState(false);
 	const [elapsed, setElapsed] = useState(0);
+	const [saveAudioPath, setSaveAudioPath] = useState<string | null>(null);
+	const [saveTranscriptPath, setSaveTranscriptPath] = useState<string | null>(
+		null,
+	);
+	const [vadEnabled, setVadEnabled] = useState(true);
 	const timerRef = useRef<number | null>(null);
 
 	useEffect(() => {
@@ -89,24 +88,22 @@ function LiveRecord() {
 		setRecording(true);
 		setElapsed(0);
 		setStatus({ type: "recording", elapsed: 0, text: "" });
-		await startRecording(modelChoice);
+		await startRecording(
+			modelChoice,
+			saveAudioPath,
+			saveTranscriptPath,
+			vadEnabled,
+		);
 		timerRef.current = window.setInterval(() => {
 			setElapsed((prev) => prev + 1);
 		}, 1000);
-	}, [modelChoice, setStatus]);
+	}, [modelChoice, saveAudioPath, saveTranscriptPath, vadEnabled, setStatus]);
 
 	const handleStop = useCallback(async () => {
 		if (timerRef.current) clearInterval(timerRef.current);
 		setRecording(false);
 		await stopRecording();
 	}, []);
-
-	const handleCancel = useCallback(async () => {
-		if (timerRef.current) clearInterval(timerRef.current);
-		setRecording(false);
-		setStatus({ type: "idle" });
-		await cancel();
-	}, [setStatus]);
 
 	const handleSave = useCallback(async () => {
 		if (!outputText) return;
@@ -119,74 +116,95 @@ function LiveRecord() {
 	const recordingText = status.type === "recording" ? status.text : null;
 	const errorMessage = status.type === "error" ? status.message : null;
 
-	const formatTime = (s: number) => {
-		const m = Math.floor(s / 60);
-		const sec = s % 60;
-		return `${m}:${sec.toString().padStart(2, "0")}`;
-	};
-
 	return (
 		<Layout
 			sidebar={
-				<>
-					<SidebarGroup>
-						<SidebarGroupLabel>Model</SidebarGroupLabel>
-						<SidebarGroupContent>
-							<div className="px-2">
-								<Select value={modelChoice} onValueChange={setModelChoice}>
-									<SelectTrigger>
-										<SelectValue />
-									</SelectTrigger>
-									<SelectContent>
-										<SelectItem value="Accurate">
-											Accurate (small.en)
-										</SelectItem>
-										<SelectItem value="Fast">Fast (base.en)</SelectItem>
-									</SelectContent>
-								</Select>
-							</div>
-						</SidebarGroupContent>
-					</SidebarGroup>
-					<SidebarGroup>
-						<SidebarGroupLabel>Controls</SidebarGroupLabel>
-						<SidebarGroupContent>
-							<SidebarMenu>
-								{recording ? (
-									<div className="flex flex-col gap-2 px-2">
-										<div className="flex items-center gap-2 text-destructive">
-											<div className="size-2 rounded-full bg-destructive animate-pulse" />
-											<span className="text-sm font-mono">
-												{formatTime(elapsed)}
-											</span>
-										</div>
-										<Button
-											variant="destructive"
-											size="sm"
-											onClick={handleStop}
-										>
-											<Square className="size-4" />
-											Stop
-										</Button>
-										<Button variant="outline" size="sm" onClick={handleCancel}>
-											<X className="size-4" />
-											Cancel
-										</Button>
-									</div>
-								) : (
-									<SidebarMenuItem>
-										<SidebarMenuButton
-											tooltip="Start recording"
-											onClick={handleStart}
-										>
-											<Mic />
-											<span>Record</span>
-										</SidebarMenuButton>
-									</SidebarMenuItem>
-								)}
-							</SidebarMenu>
-						</SidebarGroupContent>
-					</SidebarGroup>
-				</>
+				<div className="flex flex-col gap-2 px-2">
+					<div className="flex flex-col gap-1">
+						<Label className="text-xs text-muted-foreground">Model</Label>
+						<Select value={modelChoice} onValueChange={setModelChoice}>
+							<SelectTrigger className="w-full">
+								<SelectValue />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="Accurate">Accurate (small.en)</SelectItem>
+								<SelectItem value="Fast">Fast (base.en)</SelectItem>
+							</SelectContent>
+						</Select>
+					</div>
+
+					<div className="flex flex-col gap-1">
+						<Label className="text-xs text-muted-foreground">
+							Save audio as
+						</Label>
+						<Button
+							variant="outline"
+							className="text-muted-foreground"
+							onClick={async () => {
+								const p = await pickSaveFile();
+								if (p) setSaveAudioPath(p);
+							}}
+						>
+							<FolderOpen className="size-4 shrink-0" />
+							<span className="truncate">
+								{saveAudioPath
+									? saveAudioPath.split("/").pop() ||
+										saveAudioPath.split("\\").pop()
+									: "Choose"}
+							</span>
+						</Button>
+					</div>
+
+					<div className="flex flex-col gap-1">
+						<Label className="text-xs text-muted-foreground">
+							Save transcript as
+						</Label>
+						<Button
+							variant="outline"
+							className="text-muted-foreground"
+							onClick={async () => {
+								const p = await pickSaveFile();
+								if (p) setSaveTranscriptPath(p);
+							}}
+						>
+							<FolderOpen className="size-4 shrink-0" />
+							<span className="truncate">
+								{saveTranscriptPath
+									? saveTranscriptPath.split("/").pop() ||
+										saveTranscriptPath.split("\\").pop()
+									: "Choose"}
+							</span>
+						</Button>
+					</div>
+
+					<div className="flex flex-col gap-1">
+						<Label className="text-xs text-muted-foreground">
+							VAD (Skip silence)
+						</Label>
+						<Switch checked={vadEnabled} onCheckedChange={setVadEnabled} />
+					</div>
+
+					<Separator />
+
+					<div className="flex flex-col items-stretch gap-1">
+						{recording ? (
+							<>
+								<Button size="lg" variant="destructive" onClick={handleStop}>
+									<Square className="size-4" />
+									Stop
+								</Button>
+								<p className="text-center text-xs text-destructive tabular-nums">
+									Recording: {Math.round(elapsed)}s
+								</p>
+							</>
+						) : (
+							<Button size="lg" variant="default" onClick={handleStart}>
+								<Mic className="size-4" />
+								Start
+							</Button>
+						)}
+					</div>
+				</div>
 			}
 			errorMessage={errorMessage}
 		>

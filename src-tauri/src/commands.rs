@@ -178,11 +178,20 @@ pub fn transcribe_file(
 #[tauri::command]
 pub fn start_recording(
     _model: String,
+    save_audio_path: Option<String>,
+    save_transcript_path: Option<String>,
+    vad_enabled: Option<bool>,
     app_handle: tauri::AppHandle,
     state: tauri::State<'_, AppState>,
 ) -> Result<(), String> {
     let cancel = state.cancel_flag.clone();
     cancel.store(false, Ordering::Relaxed);
+
+    let vad = vad_enabled.unwrap_or(true);
+    state.vad_enabled.store(vad, Ordering::Relaxed);
+
+    *state.save_audio_path.lock() = save_audio_path.map(std::path::PathBuf::from);
+    *state.save_transcript_path.lock() = save_transcript_path.map(std::path::PathBuf::from);
 
     let mut recorder = AudioRecorder::new();
     recorder.start(None).map_err(|e| e.to_string())?;
@@ -191,6 +200,7 @@ pub fn start_recording(
 
     let cancel_clone = cancel.clone();
     let app_handle_clone = app_handle.clone();
+    let vad_enabled_flag = state.vad_enabled.clone();
 
     std::thread::spawn(move || {
         let window_sec = 5.0;
@@ -202,7 +212,18 @@ pub fn start_recording(
             let state = app_handle_clone.state::<AppState>();
             if let Some(ref recorder) = *state.recorder.lock() {
                 if let Some(buf) = recorder.get_buffer(window_sec) {
-                    let text = format!("[captured {} samples at {window_sec}s]", buf.len());
+                    let has_speech = if vad_enabled_flag.load(Ordering::Relaxed) {
+                        recorder.has_speech(&buf, 0.5)
+                    } else {
+                        true
+                    };
+
+                    let text = if has_speech {
+                        format!("[captured {} samples at {window_sec}s]", buf.len())
+                    } else {
+                        String::new()
+                    };
+
                     let elapsed = recorder.elapsed();
                     let _ = app_handle_clone.emit("record-progress", RecordProgress {
                         elapsed,
@@ -227,11 +248,44 @@ pub fn stop_recording(
     let mut recorder_opt = state.recorder.lock();
     if let Some(mut recorder) = recorder_opt.take() {
         let audio = recorder.stop().unwrap_or_default();
+
         let text = format!("[recorded {} samples]", audio.len());
+
+        let audio_path = state.save_audio_path.lock().take();
+        let transcript_path = state.save_transcript_path.lock().take();
+
+        if let Some(ref path) = audio_path {
+            if !audio.is_empty() {
+                write_wav(path, &audio).map_err(|e| format!("failed to save audio: {e}"))?;
+            }
+        }
+
+        if let Some(ref path) = transcript_path {
+            std::fs::write(path, &text).map_err(|e| format!("failed to save transcript: {e}"))?;
+        }
+
         Ok(text)
     } else {
         Err("not recording".to_string())
     }
+}
+
+fn write_wav(path: &std::path::Path, samples: &[f32]) -> Result<(), String> {
+    use hound::WavSpec;
+    let spec = WavSpec {
+        channels: 1,
+        sample_rate: crate::config::SAMPLE_RATE,
+        bits_per_sample: 16,
+        sample_format: hound::SampleFormat::Int,
+    };
+    let mut writer = hound::WavWriter::create(path, spec).map_err(|e| e.to_string())?;
+    for &sample in samples {
+        let clamped = sample.clamp(-1.0, 1.0);
+        let amplitude = i16::MAX as f32;
+        let int_sample = (clamped * amplitude) as i16;
+        writer.write_sample(int_sample).map_err(|e| e.to_string())?;
+    }
+    writer.finalize().map_err(|e| e.to_string())
 }
 
 #[tauri::command]

@@ -45,8 +45,18 @@ export function transcribeFile(path: string, model: string): Promise<void> {
 	return invoke("transcribe_file", { path, model });
 }
 
-export function startRecording(model: string): Promise<void> {
-	return invoke("start_recording", { model });
+export function startRecording(
+	model: string,
+	saveAudioPath?: string | null,
+	saveTranscriptPath?: string | null,
+	vadEnabled?: boolean,
+): Promise<void> {
+	return invoke("start_recording", {
+		model,
+		saveAudioPath,
+		saveTranscriptPath,
+		vadEnabled,
+	});
 }
 
 export function stopRecording(): Promise<string> {

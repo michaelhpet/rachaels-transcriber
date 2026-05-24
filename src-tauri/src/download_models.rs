@@ -56,7 +56,7 @@ pub fn check_missing_models() -> Vec<&'static str> {
 pub async fn download_model(
     label: &str,
     cancel: Option<&AtomicBool>,
-    progress: Option<&dyn Fn(u64, u64)>,
+    progress: Option<Box<dyn Fn(u64, u64) + Send>>,
 ) -> Result<PathBuf> {
     let info = match label {
         "Accurate" => &ACCURATE_MODEL,

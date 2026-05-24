@@ -29,7 +29,7 @@ jobs:
 
       - name: Build .exe
         run: |
-          pyinstaller --onefile --windowed --name "RachaelsTranscriber" --add-data "engine.py;." --add-data "assets;assets" --add-data "theme.json;." --additional-hooks-dir hooks --hidden-import webrtcvad --collect-data faster_whisper --hidden-import download_models --icon assets\icon.ico gui.py
+          pyinstaller --onefile --windowed --name "RachaelsTranscriber" --add-data "engine.py;." --add-data "assets;assets" --add-data "theme.json;." --additional-hooks-dir hooks --hidden-import webrtcvad --collect-data faster_whisper --hidden-import download_models --noconfirm --icon assets\icon.ico gui.py
 
       - name: Install Inno Setup
         run: choco install innosetup -y

@@ -64,6 +64,7 @@ pyinstaller ^
     --hidden-import download_models ^
     --additional-hooks-dir hooks ^
     !EXTRA_PYI! ^
+    --noconfirm ^
     --icon assets\icon.ico ^
     gui.py
 

@@ -63,6 +63,7 @@ pyinstaller `
     --hidden-import download_models `
     --additional-hooks-dir hooks `
     @extra `
+    --noconfirm `
     --icon assets\icon.ico `
     --hidden-import faster_whisper `
     --hidden-import ctranslate2 `
